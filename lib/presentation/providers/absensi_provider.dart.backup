@@ -1,0 +1,248 @@
+//C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\absensi_provider.dart
+import 'package:flutter/material.dart';
+import '../../data/models/absensi_model.dart';
+
+class AbsensiProvider with ChangeNotifier {
+  // ✅ DUMMY DATA ABSENSI (30 hari terakhir untuk 5 siswa)
+  final List<AbsensiModel> _absensiList = [];
+
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  // Getters
+  List<AbsensiModel> get absensiList => _absensiList;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  // Constructor - Generate dummy data
+  AbsensiProvider() {
+    _generateDummyAbsensi();
+  }
+
+  // Generate dummy absensi untuk 30 hari terakhir
+  void _generateDummyAbsensi() {
+    final now = DateTime.now();
+    final siswaIds = ['1', '2', '3', '4', '5']; // 5 siswa
+    final kelasMap = {
+      '1': '7A',
+      '2': '7A',
+      '3': '7A',
+      '4': '7B',
+      '5': '7B',
+    };
+    final guruMap = {
+      '7A': '1', // Heni
+      '7B': '2', // Ahmad
+    };
+
+    // Generate untuk 30 hari terakhir (hanya hari kerja)
+    for (int i = 30; i >= 0; i--) {
+      final tanggal = now.subtract(Duration(days: i));
+      
+      // Skip weekend
+      if (tanggal.weekday == DateTime.saturday || 
+          tanggal.weekday == DateTime.sunday) {
+        continue;
+      }
+
+      // Generate absensi untuk setiap siswa
+      for (var siswaId in siswaIds) {
+        final kelas = kelasMap[siswaId]!;
+        final guruId = guruMap[kelas]!;
+        
+        // Random status dengan probabilitas: Hadir 80%, Izin 10%, Sakit 5%, Alpha 5%
+        final random = (siswaId.hashCode + i) % 100;
+        AbsensiStatus status;
+        
+        if (random < 80) {
+          status = AbsensiStatus.hadir;
+        } else if (random < 90) {
+          status = AbsensiStatus.izin;
+        } else if (random < 95) {
+          status = AbsensiStatus.sakit;
+        } else {
+          status = AbsensiStatus.alpha;
+        }
+
+        _absensiList.add(AbsensiModel(
+          id: '${siswaId}_${tanggal.toIso8601String().split('T')[0]}',
+          siswaId: siswaId,
+          guruId: guruId,
+          kelas: kelas,
+          tanggal: tanggal,
+          status: status,
+          keterangan: status != AbsensiStatus.hadir 
+              ? 'Keterangan ${status.toString().split('.').last}' 
+              : null,
+          createdAt: tanggal,
+        ));
+      }
+    }
+
+    notifyListeners();
+  }
+
+  // Get absensi by tanggal & kelas
+  List<AbsensiModel> getAbsensiByTanggalKelas({
+    required DateTime tanggal,
+    required String kelas,
+  }) {
+    final tanggalOnly = DateTime(tanggal.year, tanggal.month, tanggal.day);
+    
+    return _absensiList.where((absensi) {
+      final absensiTanggalOnly = DateTime(
+        absensi.tanggal.year,
+        absensi.tanggal.month,
+        absensi.tanggal.day,
+      );
+      return absensiTanggalOnly == tanggalOnly && absensi.kelas == kelas;
+    }).toList();
+  }
+
+  // Get absensi by siswa & bulan
+  List<AbsensiModel> getAbsensiBySiswaMonth({
+    required String siswaId,
+    required int month,
+    required int year,
+  }) {
+    return _absensiList.where((absensi) {
+      return absensi.siswaId == siswaId &&
+             absensi.tanggal.month == month &&
+             absensi.tanggal.year == year;
+    }).toList();
+  }
+
+  // Get absensi by kelas & bulan
+  List<AbsensiModel> getAbsensiByKelasMonth({
+    required String kelas,
+    required int month,
+    required int year,
+  }) {
+    return _absensiList.where((absensi) {
+      return absensi.kelas == kelas &&
+             absensi.tanggal.month == month &&
+             absensi.tanggal.year == year;
+    }).toList();
+  }
+
+  // Save absensi (add or update)
+  Future<bool> saveAbsensi({
+    required String siswaId,
+    required String guruId,
+    required String kelas,
+    required DateTime tanggal,
+    required AbsensiStatus status,
+    String? keterangan,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Cek apakah sudah ada absensi di tanggal ini
+      final tanggalOnly = DateTime(tanggal.year, tanggal.month, tanggal.day);
+      final existingIndex = _absensiList.indexWhere((a) {
+        final aTanggal = DateTime(a.tanggal.year, a.tanggal.month, a.tanggal.day);
+        return a.siswaId == siswaId && aTanggal == tanggalOnly;
+      });
+
+      if (existingIndex != -1) {
+        // Update existing
+        _absensiList[existingIndex] = _absensiList[existingIndex].copyWith(
+          status: status,
+          keterangan: keterangan,
+          updatedAt: DateTime.now(),
+        );
+      } else {
+        // Add new
+        final newAbsensi = AbsensiModel(
+          id: '${siswaId}_${tanggalOnly.toIso8601String().split('T')[0]}',
+          siswaId: siswaId,
+          guruId: guruId,
+          kelas: kelas,
+          tanggal: tanggalOnly,
+          status: status,
+          keterangan: keterangan,
+          createdAt: DateTime.now(),
+        );
+        _absensiList.add(newAbsensi);
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal menyimpan absensi: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Get rekap absensi per siswa
+  Map<String, int> getRekapAbsensiSiswa({
+    required String siswaId,
+    int? month,
+    int? year,
+  }) {
+    List<AbsensiModel> absensis;
+    
+    if (month != null && year != null) {
+      absensis = getAbsensiBySiswaMonth(
+        siswaId: siswaId,
+        month: month,
+        year: year,
+      );
+    } else {
+      absensis = _absensiList.where((a) => a.siswaId == siswaId).toList();
+    }
+
+    int hadir = 0, izin = 0, sakit = 0, alpha = 0;
+    
+    for (var absensi in absensis) {
+      switch (absensi.status) {
+        case AbsensiStatus.hadir:
+          hadir++;
+          break;
+        case AbsensiStatus.izin:
+          izin++;
+          break;
+        case AbsensiStatus.sakit:
+          sakit++;
+          break;
+        case AbsensiStatus.alpha:
+          alpha++;
+          break;
+      }
+    }
+
+    return {
+      'hadir': hadir,
+      'izin': izin,
+      'sakit': sakit,
+      'alpha': alpha,
+      'total': absensis.length,
+    };
+  }
+
+  // Get persentase kehadiran
+  double getPersentaseKehadiran({
+    required String siswaId,
+    int? month,
+    int? year,
+  }) {
+    final rekap = getRekapAbsensiSiswa(
+      siswaId: siswaId,
+      month: month,
+      year: year,
+    );
+
+    final total = rekap['total'] ?? 0;
+    if (total == 0) return 0.0;
+
+    final hadir = rekap['hadir'] ?? 0;
+    return (hadir / total) * 100;
+  }
+}

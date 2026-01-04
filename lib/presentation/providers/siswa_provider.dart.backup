@@ -1,0 +1,293 @@
+// C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\siswa_provider.dart
+import 'package:flutter/material.dart';
+import '../../data/models/siswa_model.dart';
+
+class SiswaProvider with ChangeNotifier {
+  // ✅ DUMMY DATA (SEMUA FIELD REQUIRED DIISI)
+  final List<SiswaModel> _siswaList = [
+    SiswaModel(
+      id: '1',
+      nis: '2022001',
+      nisn: '0087654321',
+      nama: 'Ahmad Fauzi',
+      jenisKelamin: 'Laki-laki',
+      tempatLahir: 'Tangerang',
+      tanggalLahir: DateTime(2010, 5, 15),
+      agama: 'Islam',
+      alamat: 'Jl. Merdeka No. 123, Tangerang',
+      namaAyah: 'Budi Santoso',
+      namaIbu: 'Siti Aminah',
+      noTelpOrangTua: '081234567890',
+      kelas: '7A',
+      tahunMasuk: '2022',
+      status: 'Aktif',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+    SiswaModel(
+      id: '2',
+      nis: '2022002',
+      nisn: '0087654322',
+      nama: 'Siti Nurhaliza',
+      jenisKelamin: 'Perempuan',
+      tempatLahir: 'Jakarta',
+      tanggalLahir: DateTime(2010, 8, 20),
+      agama: 'Islam',
+      alamat: 'Jl. Sudirman No. 456, Tangerang',
+      namaAyah: 'Ahmad Yani',
+      namaIbu: 'Fatimah',
+      noTelpOrangTua: '081234567891',
+      kelas: '7A',
+      tahunMasuk: '2022',
+      status: 'Aktif',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+    SiswaModel(
+      id: '3',
+      nis: '2021001',
+      nisn: '0087654323',
+      nama: 'Budi Setiawan',
+      jenisKelamin: 'Laki-laki',
+      tempatLahir: 'Tangerang',
+      tanggalLahir: DateTime(2009, 3, 10),
+      agama: 'Islam',
+      alamat: 'Jl. Gatot Subroto No. 789, Tangerang',
+      namaAyah: 'Sugiarto',
+      namaIbu: 'Wati',
+      noTelpOrangTua: '081234567892',
+      kelas: '8B',
+      tahunMasuk: '2021',
+      status: 'Aktif',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+    SiswaModel(
+      id: '4',
+      nis: '2022004',
+      nisn: '0087654324',
+      nama: 'Dewi Lestari',
+      jenisKelamin: 'Perempuan',
+      tempatLahir: 'Tangerang',
+      tanggalLahir: DateTime(2010, 7, 12),
+      agama: 'Islam',
+      alamat: 'Jl. Diponegoro No. 111, Tangerang',
+      namaAyah: 'Hendra',
+      namaIbu: 'Rina',
+      noTelpOrangTua: '081234567893',
+      kelas: '7A',
+      tahunMasuk: '2022',
+      status: 'Aktif',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+    SiswaModel(
+      id: '5',
+      nis: '2022005',
+      nisn: '0087654325',
+      nama: 'Eko Prasetyo',
+      jenisKelamin: 'Laki-laki',
+      tempatLahir: 'Jakarta',
+      tanggalLahir: DateTime(2010, 11, 25),
+      agama: 'Islam',
+      alamat: 'Jl. Pahlawan No. 222, Tangerang',
+      namaAyah: 'Bambang',
+      namaIbu: 'Sri',
+      noTelpOrangTua: '081234567894',
+      kelas: '7B',
+      tahunMasuk: '2022',
+      status: 'Aktif',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+  ];
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  String _searchQuery = '';
+  String _filterKelas = 'Semua';
+  String _filterStatus = 'Semua';
+
+  // ✅ GETTERS
+  List<SiswaModel> get siswaList {
+    var filtered = _siswaList;
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((siswa) {
+        return siswa.nama.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            siswa.nis.contains(_searchQuery) ||
+            siswa.nisn.contains(_searchQuery);
+      }).toList();
+    }
+
+    // Filter by kelas
+    if (_filterKelas != 'Semua') {
+      filtered = filtered.where((siswa) => siswa.kelas == _filterKelas).toList();
+    }
+
+    // Filter by status
+    if (_filterStatus != 'Semua') {
+      filtered = filtered.where((siswa) => siswa.status == _filterStatus).toList();
+    }
+
+    return filtered;
+  }
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  String get searchQuery => _searchQuery;
+  String get filterKelas => _filterKelas;
+  String get filterStatus => _filterStatus;
+
+  // ✅ GET SISWA BY KELAS
+  List<SiswaModel> getSiswaByKelas(String kelas) {
+    return _siswaList.where((siswa) => siswa.kelas == kelas).toList();
+  }
+
+  // ✅ GET SISWA BY ID
+  SiswaModel? getSiswaById(String id) {
+    try {
+      return _siswaList.firstWhere((siswa) => siswa.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ✅ SET SEARCH QUERY
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  // ✅ SET FILTER KELAS
+  void setFilterKelas(String kelas) {
+    _filterKelas = kelas;
+    notifyListeners();
+  }
+
+  // ✅ SET FILTER STATUS
+  void setFilterStatus(String status) {
+    _filterStatus = status;
+    notifyListeners();
+  }
+
+  // ✅ CLEAR FILTERS
+  void clearFilters() {
+    _searchQuery = '';
+    _filterKelas = 'Semua';
+    _filterStatus = 'Semua';
+    notifyListeners();
+  }
+
+  // ✅ ADD SISWA
+  Future<bool> addSiswa(SiswaModel siswa) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Simulasi delay network
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Generate ID baru
+      final newId = (_siswaList.length + 1).toString();
+      final newSiswa = siswa.copyWith(
+        id: newId,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      _siswaList.add(newSiswa);
+      
+      print('✅ Siswa berhasil ditambahkan: ${newSiswa.nama}');
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('❌ Error add siswa: $e');
+      _errorMessage = 'Gagal menambahkan siswa: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ✅ UPDATE SISWA
+  Future<bool> updateSiswa(String id, SiswaModel updatedSiswa) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Simulasi delay network
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final index = _siswaList.indexWhere((siswa) => siswa.id == id);
+      if (index != -1) {
+        _siswaList[index] = updatedSiswa.copyWith(
+          id: id,
+          updatedAt: DateTime.now(),
+        );
+        
+        print('✅ Siswa berhasil diupdate: ${updatedSiswa.nama}');
+        
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        throw Exception('Siswa tidak ditemukan');
+      }
+    } catch (e) {
+      print('❌ Error update siswa: $e');
+      _errorMessage = 'Gagal mengupdate siswa: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ✅ DELETE SISWA
+  Future<bool> deleteSiswa(String id) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Simulasi delay network
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      _siswaList.removeWhere((siswa) => siswa.id == id);
+      
+      print('✅ Siswa berhasil dihapus');
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('❌ Error delete siswa: $e');
+      _errorMessage = 'Gagal menghapus siswa: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ✅ GET TOTAL SISWA BY STATUS
+  int getTotalSiswaByStatus(String status) {
+    return _siswaList.where((siswa) => siswa.status == status).length;
+  }
+
+  // ✅ GET TOTAL SISWA BY KELAS
+  int getTotalSiswaByKelas(String kelas) {
+    return _siswaList.where((siswa) => siswa.kelas == kelas).length;
+  }
+
+  // ✅ GET STATISTIK
+  Map<String, int> getStatistik() {
+    return {
+      'total': _siswaList.length,
+      'laki_laki': _siswaList.where((s) => s.jenisKelamin == 'Laki-laki').length,
+      'perempuan': _siswaList.where((s) => s.jenisKelamin == 'Perempuan').length,
+      'aktif': _siswaList.where((s) => s.status == 'Aktif').length,
+    };
+  }
+}
