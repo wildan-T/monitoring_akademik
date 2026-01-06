@@ -8,10 +8,7 @@ import '../../../providers/absensi_provider.dart';
 class SiswaDetailScreen extends StatelessWidget {
   final SiswaModel siswa;
 
-  const SiswaDetailScreen({
-    super.key,
-    required this.siswa,
-  });
+  const SiswaDetailScreen({super.key, required this.siswa});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +27,10 @@ class SiswaDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -62,10 +62,7 @@ class SiswaDetailScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'NISN: ${siswa.nisn}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.white70),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -106,7 +103,10 @@ class SiswaDetailScreen extends StatelessWidget {
                     _buildInfoRow('Tempat Lahir', siswa.tempatLahir),
                     _buildInfoRow(
                       'Tanggal Lahir',
-                      DateFormat('dd MMMM yyyy', 'id_ID').format(siswa.tanggalLahir),
+                      DateFormat(
+                        'dd MMMM yyyy',
+                        'id_ID',
+                      ).format(siswa.tanggalLahir),
                     ),
                     _buildInfoRow('Agama', siswa.agama),
                     _buildInfoRow('Alamat', siswa.alamat),
@@ -137,19 +137,24 @@ class SiswaDetailScreen extends StatelessWidget {
                   // Rekap Absensi Bulan Ini
                   _buildSectionTitle('Rekap Absensi Bulan Ini'),
                   const SizedBox(height: 12),
-                  Consumer<AbsensiProvider>(
-                    builder: (context, provider, child) {
-                      final now = DateTime.now();
-                      final rekap = provider.getRekapAbsensiSiswa(
-                        siswaId: siswa.id,
-                        month: now.month,
-                        year: now.year,
+                  // ✅ FIX: Gunakan FutureBuilder karena getRekapAbsensiSiswa mengembalikan Future
+                  FutureBuilder<Map<String, int>>(
+                    future: Provider.of<AbsensiProvider>(
+                      context,
+                      listen: false,
+                    ).getRekapAbsensiSiswa(
+                      siswa.id,
+                    ), // Hapus parameter month/year
+                    builder: (context, snapshot) {
+                      final rekap =
+                          snapshot.data ??
+                          {'hadir': 0, 'izin': 0, 'sakit': 0, 'alpha': 0};
+                      final total = rekap.values.fold(
+                        0,
+                        (sum, val) => sum + val,
                       );
-                      final persentase = provider.getPersentaseKehadiran(
-                        siswaId: siswa.id,
-                        month: now.month,
-                        year: now.year,
-                      );
+                      final persentase =
+                          total > 0 ? (rekap['hadir']! / total * 100) : 0.0;
 
                       return Card(
                         elevation: 2,
@@ -159,7 +164,8 @@ class SiswaDetailScreen extends StatelessWidget {
                             children: [
                               // Persentase Kehadiran
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Persentase Kehadiran',
@@ -173,9 +179,10 @@ class SiswaDetailScreen extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: persentase >= 80
-                                          ? AppColors.success
-                                          : AppColors.error,
+                                      color:
+                                          persentase >= 80
+                                              ? AppColors.success
+                                              : AppColors.error,
                                     ),
                                   ),
                                 ],
@@ -184,7 +191,8 @@ class SiswaDetailScreen extends StatelessWidget {
 
                               // Rekap Detail
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
                                 children: [
                                   _buildAbsensiStat(
                                     'Hadir',
@@ -239,9 +247,7 @@ class SiswaDetailScreen extends StatelessWidget {
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: children,
-        ),
+        child: Column(children: children),
       ),
     );
   }
@@ -256,20 +262,14 @@ class SiswaDetailScreen extends StatelessWidget {
             width: 120,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -289,13 +289,7 @@ class SiswaDetailScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }

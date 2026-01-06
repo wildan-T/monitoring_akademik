@@ -13,7 +13,7 @@ class SiswaAddScreen extends StatefulWidget {
 
 class _SiswaAddScreenState extends State<SiswaAddScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
   final _nisController = TextEditingController();
   final _nisnController = TextEditingController();
@@ -23,7 +23,7 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
   final _namaAyahController = TextEditingController();
   final _namaIbuController = TextEditingController();
   final _noTelpController = TextEditingController();
-  
+
   // Dropdown values
   String _jenisKelamin = 'L';
   String _agama = 'Islam';
@@ -80,7 +80,7 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
         status: 'Aktif',
       );
 
-      final success = await siswaProvider.addSiswa(newSiswa);
+      final success = await siswaProvider.createSiswa(newSiswa);
 
       if (!mounted) return;
 
@@ -108,9 +108,7 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tambah Siswa'),
-      ),
+      appBar: AppBar(title: const Text('Tambah Siswa')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -347,7 +345,18 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
               ),
               items: [
                 for (int i = 7; i <= 9; i++)
-                  for (String huruf in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
+                  for (String huruf in [
+                    'A',
+                    'B',
+                    'C',
+                    'D',
+                    'E',
+                    'F',
+                    'G',
+                    'H',
+                    'I',
+                    'J',
+                  ])
                     DropdownMenuItem(
                       value: '$i$huruf',
                       child: Text('Kelas $i$huruf'),
@@ -390,18 +399,19 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: siswaProvider.isLoading ? null : _handleSubmit,
-                    child: siswaProvider.isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.white,
+                    child:
+                        siswaProvider.isLoading
+                            ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.white,
+                                ),
                               ),
-                            ),
-                          )
-                        : const Text('SIMPAN'),
+                            )
+                            : const Text('SIMPAN'),
                   ),
                 );
               },
@@ -417,9 +427,7 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.primary, width: 2),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.primary, width: 2)),
       ),
       child: Text(
         title,

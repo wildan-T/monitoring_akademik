@@ -48,23 +48,24 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Konfirmasi Finalisasi'),
-        content: const Text(
-          'Nilai yang sudah difinalisasi tidak dapat diubah lagi. Lanjutkan?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Konfirmasi Finalisasi'),
+            content: const Text(
+              'Nilai yang sudah difinalisasi tidak dapat diubah lagi. Lanjutkan?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const Text('Ya, Finalisasi'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Ya, Finalisasi'),
-          ),
-        ],
-      ),
     );
 
     if (confirm != true || !mounted) return;
@@ -80,7 +81,9 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success ? '✅ Nilai berhasil difinalisasi' : '❌ Gagal finalisasi nilai',
+          success
+              ? '✅ Nilai berhasil difinalisasi'
+              : '❌ Gagal finalisasi nilai',
         ),
         backgroundColor: success ? Colors.green : Colors.red,
       ),
@@ -94,10 +97,7 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Finalisasi Nilai'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Finalisasi Nilai'), elevation: 0),
       body: Column(
         children: [
           // Filter Section
@@ -114,12 +114,15 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
                     filled: true,
                     fillColor: Colors.white,
                   ),
-                  items: ['7A', '7B', '8A', '8B', '9A', '9B']
-                      .map((kelas) => DropdownMenuItem(
-                            value: kelas,
-                            child: Text(kelas),
-                          ))
-                      .toList(),
+                  items:
+                      ['7A', '7B', '8A', '8B', '9A', '9B']
+                          .map(
+                            (kelas) => DropdownMenuItem(
+                              value: kelas,
+                              child: Text(kelas),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedKelas = value;
@@ -136,18 +139,21 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
                     filled: true,
                     fillColor: Colors.white,
                   ),
-                  items: [
-                    'Matematika',
-                    'Bahasa Indonesia',
-                    'IPA',
-                    'IPS',
-                    'Bahasa Inggris'
-                  ]
-                      .map((mapel) => DropdownMenuItem(
-                            value: mapel,
-                            child: Text(mapel),
-                          ))
-                      .toList(),
+                  items:
+                      [
+                            'Matematika',
+                            'Bahasa Indonesia',
+                            'IPA',
+                            'IPS',
+                            'Bahasa Inggris',
+                          ]
+                          .map(
+                            (mapel) => DropdownMenuItem(
+                              value: mapel,
+                              child: Text(mapel),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedMataPelajaran = value;
@@ -178,27 +184,33 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
                   itemCount: provider.nilaiList.length,
                   itemBuilder: (context, index) {
                     final nilai = provider.nilaiList[index];
-                    final grade = nilai.nilaiAkhir >= 90
-                        ? 'A'
-                        : nilai.nilaiAkhir >= 80
+
+                    // ✅ FIX: Gunakan akses Map ['key'] dan null safety
+                    final siswaNama =
+                        nilai.siswa is Map ? nilai.siswa['nama'] : 'Unknown';
+                    final siswaNis =
+                        nilai.siswa is Map ? nilai.siswa['nis'] : '-';
+                    final nilaiAkhir = nilai.nilaiAkhir ?? 0.0; // Handle null
+                    final grade =
+                        nilaiAkhir >= 90
+                            ? 'A'
+                            : nilaiAkhir >= 80
                             ? 'B'
-                            : nilai.nilaiAkhir >= 70
-                                ? 'C'
-                                : nilai.nilaiAkhir >= 60
-                                    ? 'D'
-                                    : 'E';
+                            : nilaiAkhir >= 70
+                            ? 'C'
+                            : nilaiAkhir >= 60
+                            ? 'D'
+                            : 'E';
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text('${index + 1}'),
-                        ),
+                        leading: CircleAvatar(child: Text('${index + 1}')),
                         title: Text(
-                          nilai.siswa?.nama ?? 'Unknown',
+                          siswaNama.toString(),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text('NIS: ${nilai.siswa?.nis ?? '-'}'),
+                        subtitle: Text('NIS: $siswaNis'),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -207,7 +219,7 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  nilai.nilaiAkhir.toStringAsFixed(1),
+                                  nilaiAkhir.toStringAsFixed(1),
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -225,9 +237,10 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
                               nilai.status == 'final'
                                   ? Icons.check_circle
                                   : Icons.pending,
-                              color: nilai.status == 'final'
-                                  ? Colors.green
-                                  : Colors.orange,
+                              color:
+                                  nilai.status == 'final'
+                                      ? Colors.green
+                                      : Colors.orange,
                             ),
                           ],
                         ),
@@ -254,12 +267,15 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
             ),
             child: Consumer<NilaiProvider>(
               builder: (context, provider, _) {
-                final allFinal = provider.nilaiList.every((n) => n.status == 'final');
+                final allFinal = provider.nilaiList.every(
+                  (n) => n.status == 'final',
+                );
 
                 return SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: provider.isLoading || allFinal ? null : _finalisasi,
+                    onPressed:
+                        provider.isLoading || allFinal ? null : _finalisasi,
                     icon: Icon(allFinal ? Icons.check_circle : Icons.lock),
                     label: Text(
                       allFinal ? 'Sudah Difinalisasi' : 'Finalisasi Nilai',

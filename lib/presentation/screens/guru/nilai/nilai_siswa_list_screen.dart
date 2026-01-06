@@ -25,23 +25,37 @@ class NilaiSiswaListScreen extends StatefulWidget {
 class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
   String _searchQuery = '';
 
+  // ✅ ADD: Load nilai saat init
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NilaiProvider>().fetchNilaiByKelasAndMapel(
+        kelasId: widget.kelas,
+        mataPelajaranId: widget.mataPelajaran,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final siswaProvider = Provider.of<SiswaProvider>(context);
     final nilaiProvider = Provider.of<NilaiProvider>(context);
 
     // Filter siswa by kelas
-    final siswaList = siswaProvider.siswaList
-        .where((siswa) => siswa.kelas == widget.kelas)
-        .toList();
+    final siswaList =
+        siswaProvider.siswaList
+            .where((siswa) => siswa.kelas == widget.kelas)
+            .toList();
 
     // Filter by search
-    final filteredSiswa = siswaList.where((siswa) {
-      final query = _searchQuery.toLowerCase();
-      return siswa.nama.toLowerCase().contains(query) ||
-          siswa.nisn.toLowerCase().contains(query) ||
-          siswa.nis.toLowerCase().contains(query);
-    }).toList();
+    final filteredSiswa =
+        siswaList.where((siswa) {
+          final query = _searchQuery.toLowerCase();
+          return siswa.nama.toLowerCase().contains(query) ||
+              siswa.nisn.toLowerCase().contains(query) ||
+              siswa.nis.toLowerCase().contains(query);
+        }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -86,21 +100,24 @@ class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
 
           // List Siswa
           Expanded(
-            child: filteredSiswa.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredSiswa.length,
-                    itemBuilder: (context, index) {
-                      final siswa = filteredSiswa[index];
-                      final nilai = nilaiProvider.getNilai(
-                        siswaId: siswa.id,
-                        kelas: widget.kelas,
-                        mataPelajaran: widget.mataPelajaran,
-                      );
-                      return _buildSiswaCard(context, siswa, nilai);
-                    },
-                  ),
+            child:
+                filteredSiswa.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredSiswa.length,
+                      itemBuilder: (context, index) {
+                        final siswa = filteredSiswa[index];
+                        final nilai = nilaiProvider.nilaiList
+                            .cast<NilaiModel?>()
+                            .firstWhere(
+                              (n) => n?.siswaId == siswa.id,
+                              orElse: () => null,
+                            );
+
+                        return _buildSiswaCard(context, siswa, nilai);
+                      },
+                    ),
           ),
         ],
       ),
@@ -155,13 +172,7 @@ class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
@@ -171,25 +182,22 @@ class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.search_off, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'Tidak ada siswa ditemukan',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSiswaCard(BuildContext context, SiswaModel siswa, NilaiModel? nilai) {
+  Widget _buildSiswaCard(
+    BuildContext context,
+    SiswaModel siswa,
+    NilaiModel? nilai,
+  ) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     return Card(
@@ -199,12 +207,13 @@ class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => NilaiInputScreen(
-                siswa: siswa,
-                kelas: widget.kelas,
-                mataPelajaran: widget.mataPelajaran,
-                guruId: authProvider.currentUser?.id ?? '',
-              ),
+              builder:
+                  (context) => NilaiInputScreen(
+                    siswa: [siswa],
+                    kelas: widget.kelas,
+                    mataPelajaran: widget.mataPelajaran,
+                    guruId: authProvider.currentUser?.id ?? '',
+                  ),
             ),
           );
         },
@@ -215,16 +224,18 @@ class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
             children: [
               // Avatar
               CircleAvatar(
-                backgroundColor: siswa.jenisKelamin == 'L'
-                    ? Colors.blue.withOpacity(0.1)
-                    : Colors.pink.withOpacity(0.1),
+                backgroundColor:
+                    siswa.jenisKelamin == 'L'
+                        ? Colors.blue.withOpacity(0.1)
+                        : Colors.pink.withOpacity(0.1),
                 radius: 28,
                 child: Text(
                   siswa.nama.substring(0, 1).toUpperCase(),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: siswa.jenisKelamin == 'L' ? Colors.blue : Colors.pink,
+                    color:
+                        siswa.jenisKelamin == 'L' ? Colors.blue : Colors.pink,
                   ),
                 ),
               ),
@@ -245,10 +256,7 @@ class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'NIS: ${siswa.nis} • NISN: ${siswa.nisn}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -260,9 +268,14 @@ class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
                 children: [
                   if (nilai != null && nilai.nilaiAkhir != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                        color: _getColorByNilai(nilai.nilaiAkhir!).withOpacity(0.1),
+                        color: _getColorByNilai(
+                          nilai.nilaiAkhir!,
+                        ).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -285,17 +298,17 @@ class _NilaiSiswaListScreenState extends State<NilaiSiswaListScreen> {
                     ),
                   ] else ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
                         'Belum Dinilai',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ),
                   ],

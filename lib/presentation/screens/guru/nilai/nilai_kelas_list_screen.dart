@@ -7,35 +7,78 @@ import '../../../../data/models/kelas_mapel_model.dart';
 import 'nilai_siswa_list_screen.dart';
 import 'nilai_rekap_screen.dart'; // ✅ TAMBAHKAN
 
-class NilaiKelasListScreen extends StatelessWidget {
+class NilaiKelasListScreen extends StatefulWidget {
   const NilaiKelasListScreen({super.key});
 
   @override
+  State<NilaiKelasListScreen> createState() => _NilaiKelasListScreenState();
+}
+
+class _NilaiKelasListScreenState extends State<NilaiKelasListScreen> {
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      if (auth.currentUser != null) {
+        context.read<NilaiProvider>().getKelasMapelByGuruId(
+          auth.currentUser!.id,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final nilaiProvider = Provider.of<NilaiProvider>(context);
+    // Gunakan Consumer untuk mendengarkan perubahan state
+    return Consumer<NilaiProvider>(
+      builder: (context, nilaiProvider, child) {
+        final kelasMapelList =
+            nilaiProvider
+                .kelasMapelList; // Ambil dari state, bukan Future langsung
 
-    // Ambil data kelas & mapel yang diajar guru ini
-    final kelasMapelList = nilaiProvider.getKelasMapelByGuruId(
-      authProvider.currentUser?.id ?? '',
-    );
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Pilih Kelas & Mata Pelajaran'),
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+          ),
+          body:
+              nilaiProvider.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : kelasMapelList.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: kelasMapelList.length,
+                    itemBuilder: (context, index) {
+                      // Konversi Map ke Model jika perlu, atau pakai Map langsung
+                      final data = kelasMapelList[index];
+                      // Adaptasi manual karena kelasMapelList adalah List<Map> di provider
+                      final kelasMapel = KelasMapelModel(
+                        // Sesuaikan parsing dengan struktur map Anda
+                        id: data['id'] ?? '',
+                        //  kelasId: data['kelas_id'] ?? '',
+                        //  mataPelajaranId: data['mata_pelajaran_id'] ?? '',
+                        kelas:
+                            data['kelas'] is Map
+                                ? data['kelas']['nama_kelas']
+                                : (data['kelas'] ?? ''),
+                        mataPelajaran:
+                            data['mata_pelajaran'] is Map
+                                ? data['mata_pelajaran']['nama_mata_pelajaran']
+                                : (data['mata_pelajaran'] ?? ''),
+                        guruId: data['guru_id'] ?? '',
+                      );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pilih Kelas & Mata Pelajaran'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
-      body: kelasMapelList.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: kelasMapelList.length,
-              itemBuilder: (context, index) {
-                final kelasMapel = kelasMapelList[index];
-                return _buildKelasMapelCard(context, kelasMapel, nilaiProvider);
-              },
-            ),
+                      return _buildKelasMapelCard(
+                        context,
+                        kelasMapel,
+                        nilaiProvider,
+                      );
+                    },
+                  ),
+        );
+      },
     );
   }
 
@@ -44,18 +87,11 @@ class NilaiKelasListScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.class_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.class_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'Tidak ada kelas yang diajar',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -83,10 +119,11 @@ class NilaiKelasListScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => NilaiSiswaListScreen(
-                    kelas: kelasMapel.kelas,
-                    mataPelajaran: kelasMapel.mataPelajaran,
-                  ),
+                  builder:
+                      (context) => NilaiSiswaListScreen(
+                        kelas: kelasMapel.kelas,
+                        mataPelajaran: kelasMapel.mataPelajaran,
+                      ),
                 ),
               );
             },
@@ -186,10 +223,11 @@ class NilaiKelasListScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => NilaiRekapScreen(
-                    kelas: kelasMapel.kelas,
-                    mataPelajaran: kelasMapel.mataPelajaran,
-                  ),
+                  builder:
+                      (context) => NilaiRekapScreen(
+                        kelas: kelasMapel.kelas,
+                        mataPelajaran: kelasMapel.mataPelajaran,
+                      ),
                 ),
               );
             },
@@ -202,11 +240,7 @@ class NilaiKelasListScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.assessment,
-                    size: 20,
-                    color: Colors.blue[700],
-                  ),
+                  Icon(Icons.assessment, size: 20, color: Colors.blue[700]),
                   const SizedBox(width: 8),
                   Text(
                     'Lihat Rekap Nilai',
@@ -225,7 +259,12 @@ class NilaiKelasListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       children: [
         Icon(icon, size: 24, color: color),
@@ -241,10 +280,7 @@ class NilaiKelasListScreen extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Colors.grey,
-          ),
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
           textAlign: TextAlign.center,
         ),
       ],

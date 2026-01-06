@@ -26,9 +26,13 @@ class GuruProvider extends ChangeNotifier {
 
       print('📚 Fetching all guru...');
       final data = await _supabaseService.getAllGuru();
-      
+
       // ✅ FIX: Proper casting via GuruModel
-      _guruList = data.map((json) => GuruModel.fromJson(json)).cast<GuruEntity>().toList();
+      _guruList =
+          data
+              .map((json) => GuruModel.fromJson(json))
+              .cast<GuruEntity>()
+              .toList();
       print('✅ Fetched ${_guruList.length} guru');
     } catch (e) {
       print('❌ Error fetching guru: $e');
@@ -49,7 +53,7 @@ class GuruProvider extends ChangeNotifier {
 
       print('📚 Fetching guru by profile ID: $profileId');
       final data = await _supabaseService.getGuruByProfileId(profileId);
-      
+
       if (data != null) {
         // ✅ FIX: Create GuruModel then cast to Entity
         final guru = GuruModel.fromJson(data);
@@ -92,6 +96,10 @@ class GuruProvider extends ChangeNotifier {
     String? noTelp,
     String? alamat,
     String? pendidikanTerakhir,
+    String? jenisKelamin,
+    String? tempatLahir,
+    DateTime? tanggalLahir,
+    String? agama,
   }) async {
     try {
       _isLoading = true;
@@ -99,7 +107,7 @@ class GuruProvider extends ChangeNotifier {
       notifyListeners();
 
       print('💾 Updating guru profile: $guruId');
-      
+
       final success = await _supabaseService.updateGuruProfile(
         guruId: guruId,
         nuptk: nuptk,
@@ -116,7 +124,7 @@ class GuruProvider extends ChangeNotifier {
         final updatedData = await _supabaseService.getGuruById(guruId);
         if (updatedData != null) {
           _currentGuru = GuruModel.fromJson(updatedData);
-          
+
           final index = _guruList.indexWhere((g) => g.id == guruId);
           if (index != -1) {
             _guruList[index] = _currentGuru!;
@@ -146,7 +154,7 @@ class GuruProvider extends ChangeNotifier {
       notifyListeners();
 
       print('👨‍🏫 Setting wali kelas: $guruId -> $kelasId');
-      
+
       final success = await _supabaseService.setWaliKelas(
         guruId: guruId,
         kelasId: kelasId,
@@ -176,7 +184,7 @@ class GuruProvider extends ChangeNotifier {
       notifyListeners();
 
       print('❌ Removing wali kelas: $guruId');
-      
+
       final success = await _supabaseService.removeWaliKelas(guruId);
 
       if (success) {
@@ -206,12 +214,12 @@ class GuruProvider extends ChangeNotifier {
   // ✅ SEARCH GURU
   List<GuruEntity> searchGuru(String query) {
     if (query.isEmpty) return _guruList;
-    
+
     final lowerQuery = query.toLowerCase();
     return _guruList.where((guru) {
       return guru.nama.toLowerCase().contains(lowerQuery) ||
-             guru.nuptk.toLowerCase().contains(lowerQuery) ||
-             (guru.nip?.toLowerCase().contains(lowerQuery) ?? false);
+          guru.nuptk.toLowerCase().contains(lowerQuery) ||
+          (guru.nip?.toLowerCase().contains(lowerQuery) ?? false);
     }).toList();
   }
 

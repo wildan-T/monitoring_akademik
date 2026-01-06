@@ -29,8 +29,11 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
   Future<void> _loadAbsensi() async {
     if (_selectedKelas == null || _selectedMataPelajaran == null) return;
 
-    final absensiProvider = Provider.of<AbsensiProvider>(context, listen: false);
-    
+    final absensiProvider = Provider.of<AbsensiProvider>(
+      context,
+      listen: false,
+    );
+
     // Get kelas ID and mapel ID (dalam real app, ambil dari database)
     final kelasId = _selectedKelas ?? '';
     final mataPelajaranId = _selectedMataPelajaran ?? '';
@@ -48,9 +51,10 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
       context: context,
       firstDate: DateTime(2024),
       lastDate: DateTime.now(),
-      initialDateRange: _startDate != null && _endDate != null
-          ? DateTimeRange(start: _startDate!, end: _endDate!)
-          : null,
+      initialDateRange:
+          _startDate != null && _endDate != null
+              ? DateTimeRange(start: _startDate!, end: _endDate!)
+              : null,
     );
 
     if (picked != null) {
@@ -93,12 +97,15 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
                     filled: true,
                     fillColor: Colors.white,
                   ),
-                  items: ['7A', '7B', '8A', '8B', '9A', '9B']
-                      .map((kelas) => DropdownMenuItem(
-                            value: kelas,
-                            child: Text(kelas),
-                          ))
-                      .toList(),
+                  items:
+                      ['7A', '7B', '8A', '8B', '9A', '9B']
+                          .map(
+                            (kelas) => DropdownMenuItem(
+                              value: kelas,
+                              child: Text(kelas),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedKelas = value;
@@ -117,18 +124,21 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
                     filled: true,
                     fillColor: Colors.white,
                   ),
-                  items: [
-                    'Matematika',
-                    'Bahasa Indonesia',
-                    'IPA',
-                    'IPS',
-                    'Bahasa Inggris'
-                  ]
-                      .map((mapel) => DropdownMenuItem(
-                            value: mapel,
-                            child: Text(mapel),
-                          ))
-                      .toList(),
+                  items:
+                      [
+                            'Matematika',
+                            'Bahasa Indonesia',
+                            'IPA',
+                            'IPS',
+                            'Bahasa Inggris',
+                          ]
+                          .map(
+                            (mapel) => DropdownMenuItem(
+                              value: mapel,
+                              child: Text(mapel),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedMataPelajaran = value;
@@ -213,9 +223,7 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
                 }
 
                 if (provider.absensiList.isEmpty) {
-                  return const Center(
-                    child: Text('Belum ada data absensi'),
-                  );
+                  return const Center(child: Text('Belum ada data absensi'));
                 }
 
                 // Group by siswa
@@ -237,25 +245,30 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
                     final firstAbsensi = absensiList.first;
 
                     // Calculate stats for this siswa
-                    final hadir = absensiList.where((a) => a.status == 'hadir').length;
-                    final izin = absensiList.where((a) => a.status == 'izin').length;
-                    final sakit = absensiList.where((a) => a.status == 'sakit').length;
-                    final alpha = absensiList.where((a) => a.status == 'alpha').length;
+                    final hadir =
+                        absensiList.where((a) => a.status == 'hadir').length;
+                    final izin =
+                        absensiList.where((a) => a.status == 'izin').length;
+                    final sakit =
+                        absensiList.where((a) => a.status == 'sakit').length;
+                    final alpha =
+                        absensiList.where((a) => a.status == 'alpha').length;
                     final total = absensiList.length;
-                    final persentase = total > 0 ? (hadir / total * 100).toStringAsFixed(1) : '0';
+                    final persentase =
+                        total > 0
+                            ? (hadir / total * 100).toStringAsFixed(1)
+                            : '0';
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ExpansionTile(
-                        leading: CircleAvatar(
-                          child: Text('${index + 1}'),
-                        ),
+                        leading: CircleAvatar(child: Text('${index + 1}')),
                         title: Text(
-                          firstAbsensi.siswa.nama ?? 'Unknown',
+                          firstAbsensi.siswa['nama'] ?? 'Unknown',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          'NIS: ${firstAbsensi.siswa.nis ?? '-'} • Kehadiran: $persentase%',
+                          'NIS: ${firstAbsensi.siswa['nis'] ?? '-'} • Kehadiran: $persentase%',
                         ),
                         children: [
                           Padding(
@@ -264,7 +277,8 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
                               children: [
                                 // Mini Stats
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
                                   children: [
                                     _buildMiniStat('H', hadir, Colors.green),
                                     _buildMiniStat('I', izin, Colors.blue),
@@ -275,27 +289,31 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
                                 const Divider(height: 24),
 
                                 // Detail List
-                                ...absensiList.map((absensi) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 8),
-                                      child: Row(
-                                        children: [
-                                          Text(
-                                            'Pertemuan ${absensi.pertemuan}',
-                                            style: const TextStyle(fontSize: 12),
+                                ...absensiList.map(
+                                  (absensi) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          'Pertemuan ${absensi.pertemuan}',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          DateFormat(
+                                            'dd MMM yyyy',
+                                          ).format(absensi.tanggal),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
                                           ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            DateFormat('dd MMM yyyy').format(absensi.tanggal),
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                          const Spacer(),
-                                          _buildStatusChip(absensi.status),
-                                        ],
-                                      ),
-                                    )),
+                                        ),
+                                        const Spacer(),
+                                        _buildStatusChip(absensi.status.name),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -331,13 +349,7 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
                 color: color,
               ),
             ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 12, color: color)),
           ],
         ),
       ),
@@ -355,13 +367,7 @@ class _AbsensiRekapScreenState extends State<AbsensiRekapScreen> {
             color: color,
           ),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: color,
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 10, color: color)),
       ],
     );
   }

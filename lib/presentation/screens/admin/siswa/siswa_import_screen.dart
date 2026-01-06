@@ -59,23 +59,25 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                child:
+                    _isLoading
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                        : const Text(
+                          'PROSES IMPORT',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      )
-                    : const Text(
-                        'PROSES IMPORT',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
               ),
 
             // ✅ 5. SAVE TO DATABASE BUTTON
@@ -90,23 +92,25 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                child:
+                    _isLoading
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                        : const Text(
+                          'SIMPAN KE DATABASE',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      )
-                    : const Text(
-                        'SIMPAN KE DATABASE',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
               ),
           ],
         ),
@@ -130,10 +134,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
                 const SizedBox(width: 8),
                 const Text(
                   'Template Excel',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -177,10 +178,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
                 const SizedBox(width: 8),
                 const Text(
                   'Pilih File Excel',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -207,10 +205,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
                         children: [
                           const Text(
                             'File terpilih:',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           Text(
                             _selectedFile!.path.split('/').last,
@@ -276,22 +271,20 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
                 const SizedBox(width: 8),
                 const Text(
                   'Hasil Import',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Message
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: success
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.red.withOpacity(0.1),
+                color:
+                    success
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -305,7 +298,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
 
             if (success) ...[
               const SizedBox(height: 16),
-              
+
               // Statistics
               Row(
                 children: [
@@ -343,18 +336,21 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: errors
-                        .map((error) => Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                '• $error',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.red,
+                    children:
+                        errors
+                            .map(
+                              (error) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text(
+                                  '• $error',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.red,
+                                  ),
                                 ),
                               ),
-                            ))
-                        .toList(),
+                            )
+                            .toList(),
                   ),
                 ),
               ],
@@ -385,13 +381,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 12, color: color)),
         ],
       ),
     );
@@ -403,9 +393,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
       final filePath = await SiswaImportService.downloadTemplate();
@@ -444,7 +432,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
   // ✅ FUNCTION: Pick File
   Future<void> _pickFile() async {
     final file = await SiswaImportService.pickExcelFile();
-    
+
     if (file != null) {
       setState(() {
         _selectedFile = file;
@@ -490,10 +478,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('❌ Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -512,7 +497,7 @@ class _SiswaImportScreenState extends State<SiswaImportScreen> {
 
       int savedCount = 0;
       for (var siswa in siswaList) {
-        final success = await provider.addSiswa(siswa);
+        final success = await provider.createSiswa(siswa);
         if (success) savedCount++;
       }
 

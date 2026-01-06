@@ -59,10 +59,7 @@ class _NilaiDetailScreenState extends State<NilaiDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detail Nilai'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Detail Nilai'), elevation: 0),
       body: Column(
         children: [
           // Header
@@ -75,10 +72,7 @@ class _NilaiDetailScreenState extends State<NilaiDetailScreen> {
               children: [
                 const Text(
                   'Siswa',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 Text(
                   widget.namaSiswa,
@@ -100,9 +94,7 @@ class _NilaiDetailScreenState extends State<NilaiDetailScreen> {
                 }
 
                 if (provider.nilaiList.isEmpty) {
-                  return const Center(
-                    child: Text('Belum ada nilai'),
-                  );
+                  return const Center(child: Text('Belum ada nilai'));
                 }
 
                 return ListView.builder(
@@ -110,7 +102,7 @@ class _NilaiDetailScreenState extends State<NilaiDetailScreen> {
                   itemCount: provider.nilaiList.length,
                   itemBuilder: (context, index) {
                     final nilai = provider.nilaiList[index];
-                    final grade = _getGrade(nilai.nilaiAkhir);
+                    final grade = _getGrade(nilai.nilaiAkhir ?? 0);
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -134,15 +126,19 @@ class _NilaiDetailScreenState extends State<NilaiDetailScreen> {
                           ),
                         ),
                         title: Text(
-                          nilai.mataPelajaran?.namaMataPelajaran ?? 'Unknown',
+                          nilai.mataPelajaran ?? 'Unknown',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          'Nilai Akhir: ${nilai.nilaiAkhir.toStringAsFixed(1)}',
+                          'Nilai Akhir: ${(nilai.nilaiAkhir ?? 0).toStringAsFixed(1)}',
                         ),
-                        trailing: nilai.status == 'final'
-                            ? const Icon(Icons.lock, color: Colors.green)
-                            : const Icon(Icons.pending, color: Colors.orange),
+                        trailing:
+                            nilai.status == 'final'
+                                ? const Icon(Icons.lock, color: Colors.green)
+                                : const Icon(
+                                  Icons.pending,
+                                  color: Colors.orange,
+                                ),
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(16),
@@ -156,8 +152,16 @@ class _NilaiDetailScreenState extends State<NilaiDetailScreen> {
                                 _buildNilaiRow('Ulangan Harian 1', nilai.uh1),
                                 _buildNilaiRow('Ulangan Harian 2', nilai.uh2),
                                 const Divider(height: 24),
-                                _buildNilaiRow('UTS', nilai.uts, isHighlight: true),
-                                _buildNilaiRow('UAS', nilai.uas, isHighlight: true),
+                                _buildNilaiRow(
+                                  'UTS',
+                                  nilai.uts,
+                                  isHighlight: true,
+                                ),
+                                _buildNilaiRow(
+                                  'UAS',
+                                  nilai.uas,
+                                  isHighlight: true,
+                                ),
                                 const Divider(height: 24),
                                 _buildNilaiRow(
                                   'NILAI AKHIR',
@@ -202,9 +206,10 @@ class _NilaiDetailScreenState extends State<NilaiDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isFinal
-                  ? Colors.blue.withOpacity(0.2)
-                  : isHighlight
+              color:
+                  isFinal
+                      ? Colors.blue.withOpacity(0.2)
+                      : isHighlight
                       ? Colors.blue.withOpacity(0.1)
                       : Colors.grey[100],
               borderRadius: BorderRadius.circular(8),

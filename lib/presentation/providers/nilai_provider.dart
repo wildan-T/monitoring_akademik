@@ -6,7 +6,7 @@ import '../../data/services/supabase_service.dart';
 
 class NilaiProvider with ChangeNotifier {
   final SupabaseService _supabaseService;
-  
+
   List<NilaiModel> _nilaiList = [];
   List<Map<String, dynamic>> _kelasMapelList = [];
   bool _isLoading = false;
@@ -20,8 +20,49 @@ class NilaiProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String get errorMessage => _errorMessage;
 
+  // ✅ ADDED: Statistik Helper (Synchronous calculation from cached list)
+  Map<String, dynamic> getStatistik({
+    required String kelas,
+    required String mataPelajaran,
+  }) {
+    // Filter nilaiList yang ada di memori
+    // Catatan: Ini mengasumsikan fetchNilaiByKelasAndMapel sudah dipanggil sebelumnya,
+    // atau untuk NilaiKelasListScreen, idealnya kita fetch summary dari DB.
+    // Untuk menghindari error kompilasi, kita return default jika list kosong/tidak cocok.
+
+    final relevantNilai =
+        _nilaiList
+            .where((n) => n.kelas == kelas && n.mataPelajaran == mataPelajaran)
+            .toList();
+
+    if (relevantNilai.isEmpty) {
+      return {
+        'total_siswa': 0,
+        'sudah_dinilai': 0,
+        'belum_dinilai': 0,
+        'rata_rata': 0.0,
+      };
+    }
+
+    final sudahDinilai =
+        relevantNilai.where((n) => n.nilaiAkhir != null).length;
+    final totalNilai = relevantNilai.fold(
+      0.0,
+      (sum, n) => sum + (n.nilaiAkhir ?? 0),
+    );
+
+    return {
+      'total_siswa': relevantNilai.length,
+      'sudah_dinilai': sudahDinilai,
+      'belum_dinilai': relevantNilai.length - sudahDinilai,
+      'rata_rata': sudahDinilai > 0 ? totalNilai / sudahDinilai : 0.0,
+    };
+  }
+
   // ========== GET KELAS-MAPEL BY GURU ID ==========
-  Future<List<Map<String, dynamic>>> getKelasMapelByGuruId(String guruId) async {
+  Future<List<Map<String, dynamic>>> getKelasMapelByGuruId(
+    String guruId,
+  ) async {
     try {
       final response = await _supabaseService.supabase
           .from('guru_kelas_mapel')
@@ -33,7 +74,7 @@ class NilaiProvider with ChangeNotifier {
           .eq('guru_id', guruId);
 
       _kelasMapelList = List<Map<String, dynamic>>.from(response as List);
-      
+
       if (kDebugMode) {
         print('✅ Fetched ${_kelasMapelList.length} kelas-mapel for guru');
       }
@@ -67,9 +108,8 @@ class NilaiProvider with ChangeNotifier {
           .eq('kelas_id', kelasId)
           .order('created_at', ascending: false);
 
-      _nilaiList = (response as List)
-          .map((json) => NilaiModel.fromJson(json))
-          .toList();
+      _nilaiList =
+          (response as List).map((json) => NilaiModel.fromJson(json)).toList();
 
       if (kDebugMode) {
         print('✅ Fetched ${_nilaiList.length} nilai for kelas');
@@ -110,9 +150,8 @@ class NilaiProvider with ChangeNotifier {
           .eq('mata_pelajaran_id', mataPelajaranId)
           .order('created_at', ascending: false);
 
-      _nilaiList = (response as List)
-          .map((json) => NilaiModel.fromJson(json))
-          .toList();
+      _nilaiList =
+          (response as List).map((json) => NilaiModel.fromJson(json)).toList();
 
       if (kDebugMode) {
         print('✅ Fetched ${_nilaiList.length} nilai for kelas & mapel');
@@ -148,9 +187,8 @@ class NilaiProvider with ChangeNotifier {
           ''')
           .order('created_at', ascending: false);
 
-      _nilaiList = (response as List)
-          .map((json) => NilaiModel.fromJson(json))
-          .toList();
+      _nilaiList =
+          (response as List).map((json) => NilaiModel.fromJson(json)).toList();
 
       if (kDebugMode) {
         print('✅ Fetched ${_nilaiList.length} total nilai');
@@ -198,7 +236,8 @@ class NilaiProvider with ChangeNotifier {
     required String kelasId,
     required String mataPelajaranId,
     required String guruId,
-    required Map<String, Map<String, dynamic>> nilaiData, // siswaId: {tugas1, tugas2, ...}
+    required Map<String, Map<String, dynamic>>
+    nilaiData, // siswaId: {tugas1, tugas2, ...}
   }) async {
     _isLoading = true;
     _errorMessage = '';
@@ -255,7 +294,10 @@ class NilaiProvider with ChangeNotifier {
   }
 
   // ========== UPDATE NILAI ==========
-  Future<bool> updateNilai(String nilaiId, Map<String, dynamic> updatedData) async {
+  Future<bool> updateNilai(
+    String nilaiId,
+    Map<String, dynamic> updatedData,
+  ) async {
     try {
       await _supabaseService.supabase
           .from('nilai')
@@ -270,17 +312,18 @@ class NilaiProvider with ChangeNotifier {
       final index = _nilaiList.indexWhere((n) => n.id == nilaiId);
       if (index != -1) {
         // Refresh from server to get latest data
-        final response = await _supabaseService.supabase
-            .from('nilai')
-            .select('''
+        final response =
+            await _supabaseService.supabase
+                .from('nilai')
+                .select('''
               *,
               siswa:siswa_id(id, nama, nis, nisn),
               kelas:kelas_id(id, nama_kelas, tingkat),
               mata_pelajaran:mata_pelajaran_id(id, nama_mata_pelajaran, kode),
               guru:guru_id(id, nama)
             ''')
-            .eq('id', nilaiId)
-            .single();
+                .eq('id', nilaiId)
+                .single();
 
         _nilaiList[index] = NilaiModel.fromJson(response);
         notifyListeners();
@@ -291,6 +334,7 @@ class NilaiProvider with ChangeNotifier {
       if (kDebugMode) {
         print('❌ Error updating nilai: $e');
       }
+      _errorMessage = e.toString();
       return false;
     }
   }
@@ -337,10 +381,7 @@ class NilaiProvider with ChangeNotifier {
   // ========== DELETE NILAI ==========
   Future<bool> deleteNilai(String nilaiId) async {
     try {
-      await _supabaseService.supabase
-          .from('nilai')
-          .delete()
-          .eq('id', nilaiId);
+      await _supabaseService.supabase.from('nilai').delete().eq('id', nilaiId);
 
       if (kDebugMode) {
         print('✅ Nilai deleted successfully');
