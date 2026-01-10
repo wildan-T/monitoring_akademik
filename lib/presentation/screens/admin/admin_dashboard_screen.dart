@@ -17,7 +17,7 @@ class AdminDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard Admin'),
@@ -49,10 +49,12 @@ class AdminDashboardScreen extends StatelessWidget {
                   ],
                 ),
               );
-              
+
               if (shouldLogout == true && context.mounted) {
                 await authProvider.logout();
-                Navigator.of(context).pushReplacementNamed(RouteConstants.login);
+                Navigator.of(
+                  context,
+                ).pushReplacementNamed(RouteConstants.login);
               }
             },
           ),
@@ -92,10 +94,9 @@ class AdminDashboardScreen extends StatelessWidget {
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           Text(
-                            authProvider.currentUser?.name ?? 'Admin',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            'Admin',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -104,19 +105,19 @@ class AdminDashboardScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Menu Grid
             Text(
               'Menu Utama',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -125,21 +126,21 @@ class AdminDashboardScreen extends StatelessWidget {
               mainAxisSpacing: 16,
               children: [
                 // ✅ MENU KELOLA USER
-                _buildMenuCard(
-                  context,
-                  title: 'Kelola User',
-                  icon: Icons.people,
-                  color: AppColors.error,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const KelolaUserScreen(),
-                      ),
-                    );
-                  },
-                ),
-                
+                // _buildMenuCard(
+                //   context,
+                //   title: 'Kelola User',
+                //   icon: Icons.people,
+                //   color: AppColors.error,
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => const KelolaUserScreen(),
+                //       ),
+                //     );
+                //   },
+                // ),
+
                 // ✅ MENU KELOLA SISWA (UPDATED DENGAN BOTTOM SHEET)
                 _buildMenuCard(
                   context,
@@ -148,7 +149,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   color: AppColors.success,
                   onTap: () => _showSiswaOptionsMenu(context),
                 ),
-                
+
                 // ✅ MENU KELOLA GURU
                 _buildMenuCard(
                   context,
@@ -164,7 +165,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     );
                   },
                 ),
-                
+
                 // ✅ MENU DATA SEKOLAH
                 _buildMenuCard(
                   context,
@@ -180,7 +181,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     );
                   },
                 ),
-                
+
                 // ✅ MENU LIHAT NILAI
                 _buildMenuCard(
                   context,
@@ -196,22 +197,22 @@ class AdminDashboardScreen extends StatelessWidget {
                     );
                   },
                 ),
-                
+
                 // ✅ MENU IMPORT DATA (SHORTCUT KE IMPORT SISWA)
-                _buildMenuCard(
-                  context,
-                  title: 'Import Data',
-                  icon: Icons.upload_file,
-                  color: AppColors.primaryDark,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SiswaImportScreen(),
-                      ),
-                    );
-                  },
-                ),
+                // _buildMenuCard(
+                //   context,
+                //   title: 'Import Data',
+                //   icon: Icons.upload_file,
+                //   color: AppColors.primaryDark,
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => const SiswaImportScreen(),
+                //       ),
+                //     );
+                //   },
+                // ),
               ],
             ),
           ],
@@ -230,9 +231,7 @@ class AdminDashboardScreen extends StatelessWidget {
   }) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -247,19 +246,15 @@ class AdminDashboardScreen extends StatelessWidget {
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  size: 40,
-                  color: color,
-                ),
+                child: Icon(icon, size: 40, color: color),
               ),
               const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -294,10 +289,7 @@ class AdminDashboardScreen extends StatelessWidget {
             // Title
             const Text(
               'Kelola Data Siswa',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
 

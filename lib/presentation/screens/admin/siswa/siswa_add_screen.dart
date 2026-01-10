@@ -22,6 +22,7 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
   final _alamatController = TextEditingController();
   final _namaAyahController = TextEditingController();
   final _namaIbuController = TextEditingController();
+  final _namaWaliController = TextEditingController();
   final _noTelpController = TextEditingController();
 
   // Dropdown values
@@ -30,6 +31,8 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
   String _kelas = '7A';
   String _tahunMasuk = DateTime.now().year.toString();
   DateTime _tanggalLahir = DateTime(2010, 1, 1);
+  String _jenisKelaminWali = 'L';
+  String _hubungan = 'Ayah';
 
   @override
   void dispose() {
@@ -315,10 +318,108 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
             const SizedBox(height: 16),
 
             // No Telp Orang Tua
+            // TextFormField(
+            //   controller: _noTelpController,
+            //   decoration: const InputDecoration(
+            //     labelText: 'No. Telp Orang Tua *',
+            //     hintText: 'Masukkan nomor telepon',
+            //     prefixIcon: Icon(Icons.phone),
+            //   ),
+            //   keyboardType: TextInputType.phone,
+            //   validator: (value) {
+            //     if (value == null || value.isEmpty) {
+            //       return 'Nomor telepon tidak boleh kosong';
+            //     }
+            //     return null;
+            //   },
+            // ),
+            const SizedBox(height: 24),
+
+            // Section: Data Wali Murid
+            _buildSectionTitle('Data Wali Murid'),
+            const SizedBox(height: 16),
+
+            // Nama
+            TextFormField(
+              controller: _namaWaliController,
+              decoration: const InputDecoration(
+                labelText: 'Nama Lengkap *',
+                hintText: 'Masukkan nama wali',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+              textCapitalization: TextCapitalization.words,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Nama wali tidak boleh kosong';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Jenis Kelamin Wali
+            DropdownButtonFormField<String>(
+              value: _jenisKelaminWali,
+              decoration: const InputDecoration(
+                labelText: 'Jenis Kelamin *',
+                prefixIcon: Icon(Icons.wc),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
+                DropdownMenuItem(value: 'P', child: Text('Perempuan')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _jenisKelaminWali = value!;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Hubungan
+            DropdownButtonFormField<String>(
+              value: _hubungan,
+              decoration: const InputDecoration(
+                labelText: 'Hubungan *',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Ayah', child: Text('Ayah')),
+                DropdownMenuItem(value: 'Ibu', child: Text('Ibu')),
+                DropdownMenuItem(value: 'Wali', child: Text('Wali')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _hubungan = value!;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Alamat
+            TextFormField(
+              controller: _alamatController,
+              decoration: const InputDecoration(
+                labelText: 'Alamat Wali *',
+                hintText: 'Masukkan alamat lengkap',
+                prefixIcon: Icon(Icons.home),
+              ),
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Alamat tidak boleh kosong';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // No Telp Orang Tua
             TextFormField(
               controller: _noTelpController,
               decoration: const InputDecoration(
-                labelText: 'No. Telp Orang Tua *',
+                labelText: 'No. Telp *',
                 hintText: 'Masukkan nomor telepon',
                 prefixIcon: Icon(Icons.phone),
               ),
@@ -399,19 +500,18 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: siswaProvider.isLoading ? null : _handleSubmit,
-                    child:
-                        siswaProvider.isLoading
-                            ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.white,
-                                ),
+                    child: siswaProvider.isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.white,
                               ),
-                            )
-                            : const Text('SIMPAN'),
+                            ),
+                          )
+                        : const Text('SIMPAN'),
                   ),
                 );
               },
