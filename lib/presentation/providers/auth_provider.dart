@@ -6,7 +6,7 @@ import '../../core/constants/app_constants.dart';
 
 class AuthProvider with ChangeNotifier {
   final SupabaseService _supabaseService = SupabaseService();
-  
+
   UserModel? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
@@ -30,7 +30,7 @@ class AuthProvider with ChangeNotifier {
 
     try {
       _currentUser = await _supabaseService.getCurrentUser();
-      
+
       if (_currentUser != null) {
         print('✅ User sudah login: ${_currentUser!.username}');
         print('📋 Role: ${_currentUser!.role}');
@@ -47,29 +47,26 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Login dengan username atau email
-  Future<bool> login({
-    required String usernameOrEmail,
-    required String password,
-  }) async {
+  // ✅ Login dengan email
+  Future<bool> login({required String email, required String password}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      print('🔐 Attempting login: $usernameOrEmail');
+      print('🔐 Attempting login: $email');
 
-      _currentUser = await _supabaseService.signInWithUsernameOrEmail(
-        usernameOrEmail: usernameOrEmail,
+      _currentUser = await _supabaseService.signInWithEmail(
+        email: email,
         password: password,
       );
 
       if (_currentUser != null) {
         print('✅ Login berhasil!');
-        print('📋 User: ${_currentUser!.username}');
+        print('📋 Email: ${_currentUser!.email}');
         print('📋 Role: ${_currentUser!.role}');
         print('📋 Is Active: ${_currentUser!.isActive}');
-        
+
         _errorMessage = null;
         _isLoading = false;
         notifyListeners();

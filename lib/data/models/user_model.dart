@@ -10,38 +10,37 @@ class UserModel extends UserEntity {
     required super.role,
     super.phone,
     super.photoUrl, // ✅ TAMBAH
-    super.isActive,  // ✅ TAMBAH
+    super.isActive, // ✅ TAMBAH
   });
 
   // ✅ Factory: Supabase JSON → Model
   //factory UserModel.fromJson(Map<String, dynamic> json) {
-    //return UserModel(
-      //id: json['id'] as String,
-      //username: json['username'] as String? ?? '',
-      //name: json['nama_lengkap'] as String? ?? 'User', // ✅ Supabase field
-      //email: json['email'] as String? ?? '',
-    //  role: json['role'] as String? ?? 'wali',
-     // phone: json['no_telepon'] as String?, // ✅ Supabase field
-      //photoUrl: json['foto_profil'] as String?, // ✅ Supabase field
-      //isActive: json['is_active'] as bool? ?? true, // ✅ Supabase field
-    //);
+  //return UserModel(
+  //id: json['id'] as String,
+  //username: json['username'] as String? ?? '',
+  //name: json['nama_lengkap'] as String? ?? 'User', // ✅ Supabase field
+  //email: json['email'] as String? ?? '',
+  //  role: json['role'] as String? ?? 'wali',
+  // phone: json['no_telepon'] as String?, // ✅ Supabase field
+  //photoUrl: json['foto_profil'] as String?, // ✅ Supabase field
+  //isActive: json['is_active'] as bool? ?? true, // ✅ Supabase field
+  //);
   //}
 
-  // DARI CHAT GPT 
+  // DARI CHAT GPT
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-  return UserModel(
-    id: json['id']?.toString() ?? '',
-    username: json['username']?.toString() ?? '',
-    name: json['nama_lengkap']?.toString() ?? '',
-    email: json['email']?.toString() ?? '', // FIX
-    role: json['role']?.toString() ?? '',
-    phone: json['no_telepon']?.toString(),
-    photoUrl: json['photo_url']?.toString(),
-    isActive: json['is_active'] == true,
-  );
-}
-
+    return UserModel(
+      id: json['id']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      name: json['nama_lengkap']?.toString() ?? 'Guru',
+      email: json['email']?.toString() ?? '', // FIX
+      role: json['role']?.toString() ?? '',
+      phone: json['no_telepon']?.toString(),
+      photoUrl: json['photo_url']?.toString(),
+      isActive: json['is_active'] == true,
+    );
+  }
 
   // ✅ Factory: Entity → Model
   factory UserModel.fromEntity(UserEntity entity) {

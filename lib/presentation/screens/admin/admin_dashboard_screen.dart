@@ -1,15 +1,18 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\admin\admin_dashboard_screen.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/screens/admin/akademik/tahun_pelajaran_screen.dart';
+import 'package:monitoring_akademik/presentation/screens/admin/kelas/kelas_manager_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/color_constants.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../presentation/providers/auth_provider.dart';
 import 'siswa/siswa_list_screen.dart';
-import 'siswa/siswa_import_screen.dart'; // ✅ TAMBAH INI
+import 'siswa/siswa_import_screen.dart';
 import 'guru/guru_list_screen.dart';
 import 'sekolah/sekolah_view_screen.dart';
 import 'kelola_user_screen.dart';
 import 'nilai/nilai_list_screen.dart';
+import 'akademik/mata_pelajaran_screen.dart'; // Pastikan file ini ada atau comment jika belum
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -27,7 +30,6 @@ class AdminDashboardScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              // Konfirmasi logout
               final shouldLogout = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -124,24 +126,9 @@ class AdminDashboardScreen extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
+              // ✅ PERBAIKAN 1: Menambah tinggi kartu agar tidak overflow
+              childAspectRatio: 0.9,
               children: [
-                // ✅ MENU KELOLA USER
-                // _buildMenuCard(
-                //   context,
-                //   title: 'Kelola User',
-                //   icon: Icons.people,
-                //   color: AppColors.error,
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(
-                //         builder: (context) => const KelolaUserScreen(),
-                //       ),
-                //     );
-                //   },
-                // ),
-
-                // ✅ MENU KELOLA SISWA (UPDATED DENGAN BOTTOM SHEET)
                 _buildMenuCard(
                   context,
                   title: 'Kelola Siswa',
@@ -149,8 +136,6 @@ class AdminDashboardScreen extends StatelessWidget {
                   color: AppColors.success,
                   onTap: () => _showSiswaOptionsMenu(context),
                 ),
-
-                // ✅ MENU KELOLA GURU
                 _buildMenuCard(
                   context,
                   title: 'Kelola Guru',
@@ -165,8 +150,48 @@ class AdminDashboardScreen extends StatelessWidget {
                     );
                   },
                 ),
-
-                // ✅ MENU DATA SEKOLAH
+                _buildMenuCard(
+                  context,
+                  icon: Icons.meeting_room,
+                  title: 'Data Kelas',
+                  color: AppColors.error,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const KelasManagerScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuCard(
+                  context,
+                  icon: Icons.book,
+                  title: 'Data Mata Pelajaran',
+                  color: Colors.blueAccent, // Warna pembeda
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MataPelajaranScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuCard(
+                  context,
+                  icon: Icons.date_range,
+                  title: 'Data Tahun Pelajaran',
+                  color: Colors.redAccent, // Warna pembeda
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TahunPelajaranScreen(),
+                      ),
+                    );
+                  },
+                ),
                 _buildMenuCard(
                   context,
                   title: 'Data Sekolah',
@@ -181,8 +206,6 @@ class AdminDashboardScreen extends StatelessWidget {
                     );
                   },
                 ),
-
-                // ✅ MENU LIHAT NILAI
                 _buildMenuCard(
                   context,
                   title: 'Lihat Nilai',
@@ -197,22 +220,6 @@ class AdminDashboardScreen extends StatelessWidget {
                     );
                   },
                 ),
-
-                // ✅ MENU IMPORT DATA (SHORTCUT KE IMPORT SISWA)
-                // _buildMenuCard(
-                //   context,
-                //   title: 'Import Data',
-                //   icon: Icons.upload_file,
-                //   color: AppColors.primaryDark,
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(
-                //         builder: (context) => const SiswaImportScreen(),
-                //       ),
-                //     );
-                //   },
-                // ),
               ],
             ),
           ],
@@ -221,7 +228,7 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // ✅ BUILD MENU CARD
+  // ✅ PERBAIKAN 2: Compact Menu Card (Mengurangi Padding & Ukuran)
   Widget _buildMenuCard(
     BuildContext context, {
     required String title,
@@ -236,25 +243,28 @@ class AdminDashboardScreen extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12), // Dikurangi dari 16
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12), // Dikurangi dari 16
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 40, color: color),
+                child: Icon(icon, size: 36, color: color), // Dikurangi dari 40
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10), // Dikurangi dari 12
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                maxLines: 2, // Mencegah teks terlalu panjang ke bawah
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14, // Ukuran font disesuaikan
+                ),
               ),
             ],
           ),
@@ -263,7 +273,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // ✅ SHOW SISWA OPTIONS MENU (BOTTOM SHEET)
   void _showSiswaOptionsMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -275,7 +284,6 @@ class AdminDashboardScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle bar
             Container(
               width: 40,
               height: 4,
@@ -285,15 +293,11 @@ class AdminDashboardScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
-            // Title
             const Text(
               'Kelola Data Siswa',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
-            // ✅ OPTION 1: Import Data Siswa
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
@@ -307,7 +311,7 @@ class AdminDashboardScreen extends StatelessWidget {
               subtitle: const Text('Import dari file Excel'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                Navigator.pop(context); // Close bottom sheet
+                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -316,10 +320,7 @@ class AdminDashboardScreen extends StatelessWidget {
                 );
               },
             ),
-
             const Divider(),
-
-            // ✅ OPTION 2: Lihat & Kelola Data
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
@@ -333,7 +334,7 @@ class AdminDashboardScreen extends StatelessWidget {
               subtitle: const Text('Lihat, tambah, edit, hapus siswa'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                Navigator.pop(context); // Close bottom sheet
+                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -342,7 +343,6 @@ class AdminDashboardScreen extends StatelessWidget {
                 );
               },
             ),
-
             const SizedBox(height: 10),
           ],
         ),

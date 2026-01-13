@@ -15,14 +15,14 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -34,12 +34,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       print('🔐 Login attempt started...');
-      print('📧 Username/Email: ${_usernameController.text}');
+      print('📧 Email: ${_emailController.text}');
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
       final success = await authProvider.login(
-        usernameOrEmail: _usernameController.text.trim(),
+        email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
@@ -54,21 +54,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (user?.role == AppConstants.roleGuru && !user!.isActive) {
           print('⚠️ Guru profile incomplete, redirecting...');
-          Navigator.pushReplacementNamed(context, RouteConstants.lengkapiProfilGuru);
+          Navigator.pushReplacementNamed(
+            context,
+            RouteConstants.lengkapiProfilGuru,
+          );
           return;
         }
 
         print('📍 Navigating based on role: ${user?.role}');
-        
+
         if (user?.role == AppConstants.roleAdmin) {
           print('📌 Going to admin dashboard');
-          Navigator.pushReplacementNamed(context, RouteConstants.adminDashboard);
+          Navigator.pushReplacementNamed(
+            context,
+            RouteConstants.adminDashboard,
+          );
         } else if (user?.role == AppConstants.roleGuru) {
           print('📌 Going to guru dashboard');
           Navigator.pushReplacementNamed(context, RouteConstants.guruDashboard);
         } else if (user?.role == AppConstants.roleWali) {
           print('📌 Going to wali murid dashboard');
-          Navigator.pushReplacementNamed(context, RouteConstants.waliMuridDashboard);
+          Navigator.pushReplacementNamed(
+            context,
+            RouteConstants.waliMuridDashboard,
+          );
         }
       } else if (mounted) {
         // ✅ FIX: error → errorMessage
@@ -83,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e, stackTrace) {
       print('❌ EXCEPTION in _login(): $e');
       print('❌ StackTrace: $stackTrace');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -176,10 +185,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 24),
 
                             TextFormField(
-                              controller: _usernameController,
+                              controller: _emailController,
                               decoration: InputDecoration(
-                                labelText: 'Username atau Email',
-                                hintText: 'Contoh: admin atau admin@smpn20.sch.id',
+                                labelText: 'Email',
+                                hintText: 'Contoh: admin@smpn20.sch.id',
                                 prefixIcon: const Icon(Icons.person),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -187,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Username/Email tidak boleh kosong';
+                                  return 'Email tidak boleh kosong';
                                 }
                                 return null;
                               },
@@ -230,7 +239,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: AppColors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -241,9 +252,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                       width: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          AppColors.white,
-                                        ),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              AppColors.white,
+                                            ),
                                       ),
                                     )
                                   : const Text(

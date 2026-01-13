@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\admin\guru\guru_list_screen.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/screens/admin/guru/guru_add_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/color_constants.dart';
 import '../../../providers/guru_provider.dart';
@@ -28,6 +29,15 @@ class _GuruListScreenState extends State<GuruListScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
       ),
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const GuruAddScreen()),
+          );
+        },
+      ),
       body: Consumer<GuruProvider>(
         builder: (context, guruProvider, child) {
           if (guruProvider.isLoading) {
@@ -40,7 +50,11 @@ class _GuruListScreenState extends State<GuruListScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(height: 16),
                   Text('Error: ${guruProvider.errorMessage}'),
                   const SizedBox(height: 16),

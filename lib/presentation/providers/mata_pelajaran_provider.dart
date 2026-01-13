@@ -1,38 +1,90 @@
-//C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\mata_pelajaran_provider.dart
-import 'package:flutter/foundation.dart';
+// lib/presentation/providers/mata_pelajaran_provider.dart
+import 'package:flutter/material.dart';
+import '../../data/models/mata_pelajaran_model.dart';
 import '../../data/services/supabase_service.dart';
 
 class MataPelajaranProvider with ChangeNotifier {
   final SupabaseService _supabaseService = SupabaseService();
-  
-  List<Map<String, dynamic>> _mataPelajaranList = [];
+
+  List<MataPelajaranModel> _mapelList = [];
   bool _isLoading = false;
-  String? _error;
+  String? _errorMessage;
 
-  List<Map<String, dynamic>> get mataPelajaranList => _mataPelajaranList;
+  List<MataPelajaranModel> get mapelList => _mapelList;
   bool get isLoading => _isLoading;
-  String? get error => _error;
+  String? get errorMessage => _errorMessage;
 
-  // ✅ Get all mata pelajaran
-  Future<void> fetchAllMataPelajaran() async {
+  // READ
+  Future<void> fetchMataPelajaran() async {
     _isLoading = true;
-    _error = null;
+    _errorMessage = null;
     notifyListeners();
 
     try {
-      _mataPelajaranList = await _supabaseService.getAllMataPelajaran();
-      print('✅ Fetched ${_mataPelajaranList.length} mata pelajaran');
+      final data = await _supabaseService.fetchAllMataPelajaran();
+      _mapelList = data.map((e) => MataPelajaranModel.fromJson(e)).toList();
     } catch (e) {
-      _error = e.toString();
-      print('❌ Error fetchAllMataPelajaran: $e');
+      _errorMessage = 'Gagal memuat data: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  void clearError() {
-    _error = null;
+  // CREATE / UPDATE
+  Future<bool> saveMataPelajaran({
+    String? id,
+    required String kodeMapel,
+    required String namaMapel,
+    String? kategori,
+  }) async {
+    _isLoading = true;
     notifyListeners();
+
+    try {
+      if (id == null) {
+        // Create
+        await _supabaseService.createMataPelajaran(
+          kodeMapel: kodeMapel,
+          namaMapel: namaMapel,
+          kategori: kategori,
+        );
+      } else {
+        // Update
+        await _supabaseService.updateMataPelajaran(
+          id: id,
+          kodeMapel: kodeMapel,
+          namaMapel: namaMapel,
+          kategori: kategori,
+        );
+      }
+
+      await fetchMataPelajaran(); // Refresh list
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      if (e.toString().contains('duplicate key')) {
+        _errorMessage = 'Kode Mapel "$kodeMapel" sudah ada.';
+      }
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // DELETE
+  Future<bool> deleteMataPelajaran(String id) async {
+    try {
+      await _supabaseService.deleteMataPelajaran(id);
+      _mapelList.removeWhere((item) => item.id == id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage =
+          'Gagal menghapus data. Mungkin sedang digunakan di jadwal/nilai.';
+      notifyListeners();
+      return false;
+    }
   }
 }

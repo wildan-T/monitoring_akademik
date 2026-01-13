@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\admin\guru\guru_detail_screen.dart
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/color_constants.dart';
 import '../../../../domain/entities/guru_entity.dart';
 
@@ -10,6 +11,21 @@ class GuruDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Logic URL Foto Profil
+    String? imageUrl;
+    if (guru.fotoProfil != null && guru.fotoProfil!.isNotEmpty) {
+      // Asumsi fotoProfil menyimpan path (e.g. 'uid/filename.jpg')
+      // Jika menyimpan full URL, bisa dipakai langsung.
+      // Di sini kita gunakan getPublicUrl dari bucket 'fotoprofil'
+      try {
+        imageUrl = Supabase.instance.client.storage
+            .from('fotoprofil')
+            .getPublicUrl(guru.fotoProfil!);
+      } catch (e) {
+        print('Error getting image url: $e');
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(guru.nama),
@@ -29,15 +45,24 @@ class GuruDetailScreen extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                      child: Text(
-                        guru.nama.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 32,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      backgroundColor: AppColors.primary.withOpacity(
+                        0.1,
+                      ), // changed from withValues for compatibility
+                      backgroundImage: imageUrl != null
+                          ? NetworkImage(imageUrl)
+                          : null,
+                      child: imageUrl == null
+                          ? Text(
+                              guru.nama.isNotEmpty
+                                  ? guru.nama.substring(0, 1).toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                fontSize: 32,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -65,16 +90,16 @@ class GuruDetailScreen extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: guru.isWaliKelas 
-                                  ? AppColors.success.withValues(alpha: 0.1)
-                                  : AppColors.info.withValues(alpha: 0.1),
+                              color: guru.isWaliKelas
+                                  ? AppColors.success.withOpacity(0.1)
+                                  : AppColors.info.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               guru.isWaliKelas ? 'Wali Kelas' : 'Guru',
                               style: TextStyle(
-                                color: guru.isWaliKelas 
-                                    ? AppColors.success 
+                                color: guru.isWaliKelas
+                                    ? AppColors.success
                                     : AppColors.info,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -93,10 +118,7 @@ class GuruDetailScreen extends StatelessWidget {
             // Data Pribadi
             const Text(
               'Data Pribadi',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Card(
@@ -122,10 +144,7 @@ class GuruDetailScreen extends StatelessWidget {
             // Data Akademik
             const Text(
               'Data Akademik',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Card(
@@ -175,9 +194,7 @@ class GuruDetailScreen extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],

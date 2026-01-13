@@ -17,6 +17,40 @@ class GuruProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  Future<bool> addGuru(GuruModel guru) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Skenario: Password default adalah NIP atau NUPTK
+      final defaultPassword = '123456';
+
+      final success = await _supabaseService.createGuruAccount(
+        guru: guru,
+        password: defaultPassword, // 🔐 Password default
+      );
+
+      if (success) {
+        // Refresh list lokal agar data terbaru muncul
+        await fetchAllGuru();
+        _errorMessage = null;
+      } else {
+        _errorMessage = 'Gagal menyimpan data ke database';
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      print('❌ ERROR addGuru: $e');
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ✅ FETCH ALL GURU - FIXED
   Future<void> fetchAllGuru() async {
     try {
@@ -28,11 +62,10 @@ class GuruProvider extends ChangeNotifier {
       final data = await _supabaseService.getAllGuru();
 
       // ✅ FIX: Proper casting via GuruModel
-      _guruList =
-          data
-              .map((json) => GuruModel.fromJson(json))
-              .cast<GuruEntity>()
-              .toList();
+      _guruList = data
+          .map((json) => GuruModel.fromJson(json))
+          .cast<GuruEntity>()
+          .toList();
       print('✅ Fetched ${_guruList.length} guru');
     } catch (e) {
       print('❌ Error fetching guru: $e');

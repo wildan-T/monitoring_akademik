@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/color_constants.dart';
-import '../../../providers/auth_provider.dart';
 import '../../../providers/guru_provider.dart';
 import '../../../providers/siswa_provider.dart';
 import '../../../providers/kelas_provider.dart';
@@ -30,19 +29,18 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
     final kelasProvider = context.read<KelasProvider>();
     final siswaProvider = context.read<SiswaProvider>();
 
-    // ✅ FIX: Use currentGuru (sync getter)
     final currentGuru = guruProvider.currentGuru;
 
-    // Load kelas list
+    // ✅ Load Data Kelas & Siswa
     await kelasProvider.fetchAllKelas();
+    await siswaProvider
+        .fetchAllSiswa(); // Penting: Load semua siswa dulu baru difilter
 
-    await siswaProvider.fetchAllSiswa();
-
-    // ✅ FIX: Check currentGuru properly
+    // ✅ Auto-select jika Wali Kelas
     if (currentGuru != null && currentGuru.isWaliKelas) {
-      // Auto-select wali kelas
       _selectedKelas = currentGuru.waliKelas;
       if (_selectedKelas != null) {
+        // Gunakan setFilterKelas (bukan fetchSiswaByKelas)
         siswaProvider.setFilterKelas(_selectedKelas!);
       }
     }
@@ -66,10 +64,18 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
             color: AppColors.white,
             child: Consumer2<KelasProvider, GuruProvider>(
               builder: (context, kelasProvider, guruProvider, child) {
-                // ✅ FIX: Use currentGuru
                 final currentGuru = guruProvider.currentGuru;
                 final isWaliKelas = currentGuru?.isWaliKelas ?? false;
                 final waliKelasName = currentGuru?.waliKelas;
+
+                // Filter dropdown: Jika wali kelas, hanya tampilkan kelasnya sendiri
+                // Jika bukan wali kelas, tampilkan semua kelas
+                final filteredKelasList = kelasProvider.kelasList.where((
+                  kelas,
+                ) {
+                  if (!isWaliKelas) return true;
+                  return kelas.namaKelas == waliKelasName;
+                }).toList();
 
                 return DropdownButtonFormField<String>(
                   decoration: InputDecoration(
@@ -83,30 +89,17 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
                     ),
                   ),
                   value: _selectedKelas,
-                  items:
-                      kelasProvider.kelasList
-                          .map<DropdownMenuItem<String>>((kelas) {
-                            // Cek tipe data kelas, jika Map gunakan ['nama_kelas'] atau ['nama']
-                            final namaKelas =
-                                (kelas is Map)
-                                    ? kelas['nama_kelas']?.toString() ?? ''
-                                    : kelas.toString();
-
-                            return DropdownMenuItem<String>(
-                              value: namaKelas,
-                              child: Text(namaKelas),
-                            );
-                          })
-                          .where((item) {
-                            // Filter logika untuk wali kelas
-                            if (!isWaliKelas) return true;
-                            return item.value == waliKelasName;
-                          })
-                          .toList(),
+                  // ✅ FIX: Mapping data KelasModel dengan benar
+                  items: filteredKelasList.map((kelas) {
+                    return DropdownMenuItem<String>(
+                      value: kelas.namaKelas, // Gunakan property namaKelas
+                      child: Text(kelas.namaKelas),
+                    );
+                  }).toList(),
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => _selectedKelas = value);
-                      // ✅ GANTI: fetchSiswaByKelas -> setFilterKelas
+                      // ✅ FIX: Panggil setFilterKelas (Synchronous void method)
                       context.read<SiswaProvider>().setFilterKelas(value);
                     }
                   },
@@ -156,15 +149,13 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
                         Icon(
                           Icons.class_outlined,
                           size: 64,
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                          color: AppColors.textSecondary.withOpacity(0.5),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Pilih kelas untuk melihat daftar siswa',
                           style: TextStyle(
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.7,
-                            ),
+                            color: AppColors.textSecondary.withOpacity(0.7),
                           ),
                         ),
                       ],
@@ -180,17 +171,15 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.people_outline,
+                          Icons.people,
                           size: 64,
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                          color: AppColors.textSecondary.withOpacity(0.5),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Tidak ada siswa di kelas $_selectedKelas',
                           style: TextStyle(
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.7,
-                            ),
+                            color: AppColors.textSecondary.withOpacity(0.7),
                           ),
                         ),
                       ],
@@ -207,11 +196,11 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppColors.primary.withValues(
-                            alpha: 0.1,
-                          ),
+                          backgroundColor: AppColors.primary.withOpacity(0.1),
                           child: Text(
-                            siswa.nama.substring(0, 1).toUpperCase(),
+                            siswa.nama.isNotEmpty
+                                ? siswa.nama[0].toUpperCase()
+                                : '?',
                             style: const TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.bold,
@@ -227,7 +216,9 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
                           children: [
                             const SizedBox(height: 4),
                             Text('NIS: ${siswa.nis}'),
-                            Text('Kelas: ${siswa.kelas}'),
+                            Text(
+                              'Kelas: ${siswa.kelas}',
+                            ), // Menampilkan nama kelas
                           ],
                         ),
                         trailing: const Icon(Icons.chevron_right),

@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\main.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/providers/tahun_pelajaran_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -44,17 +45,17 @@ import 'package:monitoring_akademik/presentation/providers/mata_pelajaran_provid
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await initializeDateFormatting('id_ID', null);
-  
+
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
   );
-  
+
   print('✅ Supabase initialized successfully');
   print('🔗 URL: ${SupabaseConfig.supabaseUrl}');
-  
+
   runApp(const MyApp());
 }
 
@@ -68,11 +69,18 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => GuruProvider()),
-        ChangeNotifierProvider(create: (_) => SiswaProvider(SupabaseService())),  // ✅ FIXED
+        ChangeNotifierProvider(
+          create: (_) => SiswaProvider(SupabaseService()),
+        ), // ✅ FIXED
         ChangeNotifierProvider(create: (_) => KelasProvider()),
         ChangeNotifierProvider(create: (_) => MataPelajaranProvider()),
-        ChangeNotifierProvider(create: (_) => NilaiProvider(SupabaseService())),  // ✅ FIXED
-        ChangeNotifierProvider(create: (_) => AbsensiProvider(SupabaseService())),  // ✅ FIXED
+        ChangeNotifierProvider(create: (_) => TahunPelajaranProvider()),
+        ChangeNotifierProvider(
+          create: (_) => NilaiProvider(SupabaseService()),
+        ), // ✅ FIXED
+        ChangeNotifierProvider(
+          create: (_) => AbsensiProvider(SupabaseService()),
+        ), // ✅ FIXED
         ChangeNotifierProvider(create: (_) => SekolahProvider()),
       ],
       child: MaterialApp(
@@ -83,13 +91,17 @@ class MyApp extends StatelessWidget {
         routes: {
           RouteConstants.splash: (context) => const SplashScreen(),
           RouteConstants.login: (context) => const LoginScreen(),
-          RouteConstants.adminDashboard: (context) => const AdminDashboardScreen(),
-          RouteConstants.guruDashboard: (context) => const GuruDashboardScreen(),
-          RouteConstants.waliMuridDashboard: (context) => const WaliMuridDashboardScreen(),
+          RouteConstants.adminDashboard: (context) =>
+              const AdminDashboardScreen(),
+          RouteConstants.guruDashboard: (context) =>
+              const GuruDashboardScreen(),
+          RouteConstants.waliMuridDashboard: (context) =>
+              const WaliMuridDashboardScreen(),
           '/admin/kelola-user': (context) => const KelolaUserScreen(),
           '/admin/form-user': (context) => const FormUserScreen(),
           '/admin/guru-list': (context) => const GuruListScreen(),
-          '/lengkapi-profil-guru': (context) => const LengkapiProfilGuruScreen(),
+          '/lengkapi-profil-guru': (context) =>
+              const LengkapiProfilGuruScreen(),
           '/guru-siswa-list': (context) => const SiswaListScreen(),
           '/guru-absensi-input': (context) => const AbsensiInputScreen(),
           '/guru-absensi-rekap': (context) => const AbsensiRekapScreen(),
@@ -103,15 +115,16 @@ class MyApp extends StatelessWidget {
               builder: (context) => GuruDetailScreen(guru: guru),
             );
           }
-          
+
           // SiswaDetailScreen - ✅ FIXED: Changed from List<SiswaModel> to SiswaModel
           if (settings.name == '/guru-siswa-detail') {
-            final siswa = settings.arguments as SiswaModel; // ✅ Single object, not list!
+            final siswa =
+                settings.arguments as SiswaModel; // ✅ Single object, not list!
             return MaterialPageRoute(
               builder: (context) => SiswaDetailScreen(siswa: siswa),
             );
           }
-          
+
           // NilaiInputScreen - ✅ FIX MISSING PARAMETERS
           if (settings.name == '/guru-nilai-input') {
             final args = settings.arguments as Map<String, dynamic>;
@@ -124,7 +137,7 @@ class MyApp extends StatelessWidget {
               ),
             );
           }
-          
+
           // NilaiRekapScreen
           if (settings.name == '/guru-nilai-rekap') {
             final args = settings.arguments as Map<String, dynamic>;
@@ -135,7 +148,7 @@ class MyApp extends StatelessWidget {
               ),
             );
           }
-          
+
           return null;
         },
       ),
