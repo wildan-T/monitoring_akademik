@@ -24,6 +24,11 @@ class _KelasManagerScreenState extends State<KelasManagerScreen> {
     int selectedTingkat = kelas?.tingkat ?? 7;
     // waliKelasId di sini adalah profile_id
     String? selectedWaliKelasId = kelas?.waliKelasId;
+    // Panggil fungsi filter dari provider
+    // Kirim selectedWaliKelasId agar guru yang sedang dipilih tidak hilang dari list
+    final availableGuru = context.read<KelasProvider>().getAvailableGuruOptions(
+      selectedWaliKelasId,
+    );
 
     showDialog(
       context: parentContext,
@@ -85,7 +90,8 @@ class _KelasManagerScreenState extends State<KelasManagerScreen> {
                               value: null,
                               child: Text('Belum Ada'),
                             ),
-                            ...provider.guruOptions.map((guru) {
+                            // Gunakan list availableGuru yang sudah difilter
+                            ...availableGuru.map((guru) {
                               return DropdownMenuItem<String>(
                                 value: guru['profile_id'].toString(),
                                 child: Text(

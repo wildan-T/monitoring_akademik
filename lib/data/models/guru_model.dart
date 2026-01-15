@@ -23,41 +23,49 @@ class GuruModel extends GuruEntity {
     super.updatedAt,
   });
 
-  // ✅ FROM JSON
-  factory GuruModel.fromJson(Map<String, dynamic> json) {
-    // ✅ Extract profiles data (relasi)
+  // ✅ FROM JSON (Updated untuk Reverse Lookup)
+  // Menambahkan parameter opsional 'kelasData' untuk menampung data dari tabel kelas
+  factory GuruModel.fromJson(
+    Map<String, dynamic> json, {
+    Map<String, dynamic>? kelasData,
+  }) {
+    // ✅ Extract profiles data (relasi jika ada)
     final profiles = json['profiles'] as Map<String, dynamic>?;
 
     return GuruModel(
-      // Gunakan toString() ?? '' untuk mencegah error casting Null
       id: json['id']?.toString() ?? '',
-
-      // ✅ FIX 1: Berikan nilai default jika NUPTK null
       nuptk: json['nuptk']?.toString() ?? '-',
 
-      // ✅ FIX 2: Cek 'nama' ATAU 'nama_lengkap' (antisipasi beda nama kolom)
+      // Handle nama (prioritas nama di tabel guru, fallback ke profiles)
       nama:
           json['nama']?.toString() ??
           json['nama_lengkap']?.toString() ??
+          profiles?['nama_lengkap']?.toString() ??
           'Tanpa Nama',
 
       nip: json['nip']?.toString(),
-      // ✅ Prioritaskan email/telp dari tabel profiles, fallback ke tabel guru
+
+      // Prioritaskan email/telp dari tabel profiles, fallback ke tabel guru
       email: profiles?['email']?.toString() ?? json['email']?.toString(),
       noTelp:
           profiles?['no_telepon']?.toString() ?? json['no_telp']?.toString(),
 
       alamat: json['alamat']?.toString(),
       pendidikanTerakhir: json['pendidikan_terakhir']?.toString(),
-      // Handle boolean dengan aman
-      isWaliKelas: json['is_wali_kelas'] == true || json['is_wali_kelas'] == 1,
 
-      // Handle nested object atau string untuk wali kelas
-      waliKelas: json['wali_kelas'] is Map
-          ? json['wali_kelas']['nama_kelas']?.toString()
-          : json['wali_kelas']?.toString(),
+      // ✅ LOGIC WALI KELAS (PENTING)
+      // 1. Cek apakah ada parameter kelasData yang dikirim (dari Reverse Lookup)
+      // 2. Jika tidak, cek apakah ada key 'kelas' di json (jika pakai Join Query)
+      isWaliKelas: kelasData != null || json['kelas'] != null,
 
-      // ✅ Ambil foto profil dari profiles
+      // Ambil nama kelas dari parameter kelasData ATAU dari json join
+      waliKelas:
+          kelasData?['nama_kelas']?.toString() ??
+          (json['kelas'] is Map
+              ? json['kelas']['nama_kelas']?.toString()
+              : null),
+
+      // Ambil foto profil dari profiles
       fotoProfil: profiles?['foto_profil']?.toString(),
 
       jenisKelamin: json['jenis_kelamin']?.toString(),
@@ -66,13 +74,10 @@ class GuruModel extends GuruEntity {
           ? DateTime.tryParse(json['tanggal_lahir'].toString())
           : null,
       agama: json['agama']?.toString(),
-      status: json['status_kepegawaian']
-          ?.toString(), // Map 'status' entity ke 'status_kepegawaian' DB
+      status: json['status_kepegawaian']?.toString(),
 
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(
-              json['created_at'].toString(),
-            ) // Gunakan tryParse agar tidak crash format salah
+          ? DateTime.tryParse(json['created_at'].toString())
           : null,
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'].toString())
@@ -80,19 +85,17 @@ class GuruModel extends GuruEntity {
     );
   }
 
-  // ✅ TO JSON
+  // ✅ TO JSON (Untuk dikirim ke API/Supabase)
   Map<String, dynamic> toJson() {
-    return {
+    final data = {
       'id': id,
       'nuptk': nuptk,
-      'nama': nama,
+      'nama_lengkap': nama,
       'nip': nip,
-      'email': email,
-      'no_telp': noTelp,
       'alamat': alamat,
       'pendidikan_terakhir': pendidikanTerakhir,
-      'is_wali_kelas': isWaliKelas,
-      'wali_kelas': waliKelas,
+      // 'is_wali_kelas': isWaliKelas, // ⚠️ Jangan kirim ini ke tabel Guru (karena kolom tidak ada)
+      // 'wali_kelas': waliKelas,      // ⚠️ Jangan kirim ini ke tabel Guru
       'jenis_kelamin': jenisKelamin,
       'tempat_lahir': tempatLahir,
       'tanggal_lahir': tanggalLahir?.toIso8601String(),
@@ -101,9 +104,14 @@ class GuruModel extends GuruEntity {
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
+
+    // Hapus nilai null agar tidak menimpa data di DB dengan null (opsional)
+    data.removeWhere((key, value) => value == null);
+
+    return data;
   }
 
-  // ✅ TO ENTITY (returns self since it already is an entity)
+  // ✅ TO ENTITY
   GuruEntity toEntity() => this;
 
   // ✅ FROM ENTITY
@@ -119,12 +127,17 @@ class GuruModel extends GuruEntity {
       pendidikanTerakhir: entity.pendidikanTerakhir,
       isWaliKelas: entity.isWaliKelas,
       waliKelas: entity.waliKelas,
+      fotoProfil: entity.fotoProfil,
+      jenisKelamin: entity.jenisKelamin,
+      tempatLahir: entity.tempatLahir,
+      tanggalLahir: entity.tanggalLahir,
+      agama: entity.agama,
+      status: entity.status,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );
   }
 
-  // ✅ COPY WITH
   @override
   GuruModel copyWith({
     String? id,

@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\admin\admin_dashboard_screen.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/screens/admin/akademik/jadwal_manager_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/akademik/tahun_pelajaran_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/kelas/kelas_manager_screen.dart';
 import 'package:provider/provider.dart';
@@ -188,6 +189,20 @@ class AdminDashboardScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const TahunPelajaranScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuCard(
+                  context,
+                  icon: Icons.schedule,
+                  title: 'Data Jadwal Pelajaran',
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const JadwalManagerScreen(),
                       ),
                     );
                   },

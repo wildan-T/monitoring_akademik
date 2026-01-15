@@ -1,7 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\data\models\siswa_model.dart
 import '../../domain/entities/siswa_entity.dart';
 
-
 class SiswaModel extends SiswaEntity {
   SiswaModel({
     required super.id,
@@ -16,11 +15,11 @@ class SiswaModel extends SiswaEntity {
     required super.namaAyah,
     required super.namaIbu,
     required super.noTelpOrangTua,
-    super.kelasId,        // ✅ ADDED - for database FK
+    super.kelasId, // ✅ ADDED - for database FK
     required super.kelas, // Display name
     required super.tahunMasuk,
     required super.status,
-    super.waliMuridId,    // ✅ ADDED - for relationship
+    super.waliMuridId, // ✅ ADDED - for relationship
     super.createdAt,
     super.updatedAt,
   });
@@ -35,7 +34,7 @@ class SiswaModel extends SiswaEntity {
       id: json['id']?.toString() ?? '',
       nis: json['nis']?.toString() ?? '',
       nisn: json['nisn']?.toString() ?? '',
-      nama: json['nama']?.toString() ?? '',
+      nama: json['nama_lengkap']?.toString() ?? '',
       jenisKelamin: json['jenis_kelamin']?.toString() ?? '',
       tempatLahir: json['tempat_lahir']?.toString() ?? '',
       tanggalLahir: json['tanggal_lahir'] != null
@@ -47,7 +46,10 @@ class SiswaModel extends SiswaEntity {
       namaIbu: json['nama_ibu']?.toString() ?? '',
       noTelpOrangTua: json['no_telp_orang_tua']?.toString() ?? '',
       kelasId: json['kelas_id']?.toString(), // ✅ ADDED
-      kelas: kelasData?['nama']?.toString() ?? json['kelas']?.toString() ?? '',
+      kelas:
+          kelasData?['nama_kelas']?.toString() ??
+          json['kelas']?.toString() ??
+          '',
       tahunMasuk: json['tahun_masuk']?.toString() ?? '',
       status: json['status']?.toString() ?? 'Aktif',
       waliMuridId: json['wali_murid_id']?.toString(), // ✅ ADDED
@@ -66,7 +68,7 @@ class SiswaModel extends SiswaEntity {
       'id': id,
       'nis': nis,
       'nisn': nisn,
-      'nama': nama,
+      'nama_lengkap': nama,
       'jenis_kelamin': jenisKelamin,
       'tempat_lahir': tempatLahir,
       'tanggal_lahir': tanggalLahir.toIso8601String(),
@@ -75,11 +77,11 @@ class SiswaModel extends SiswaEntity {
       'nama_ayah': namaAyah,
       'nama_ibu': namaIbu,
       'no_telp_orang_tua': noTelpOrangTua,
-      'kelas_id': kelasId,           // ✅ ADDED
+      'kelas_id': kelasId, // ✅ ADDED
       'kelas': kelas,
       'tahun_masuk': tahunMasuk,
       'status': status,
-      'wali_murid_id': waliMuridId,  // ✅ ADDED
+      'wali_murid_id': waliMuridId, // ✅ ADDED
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };

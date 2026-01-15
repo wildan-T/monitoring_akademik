@@ -78,31 +78,54 @@ class GuruProvider extends ChangeNotifier {
   }
 
   // ✅ FETCH GURU BY PROFILE ID - FIXED
+  // Future<void> fetchGuruByProfileId(String profileId) async {
+  //   try {
+  //     _isLoading = true;
+  //     _errorMessage = null;
+  //     notifyListeners();
+
+  //     print('📚 Fetching guru by profile ID: $profileId');
+  //     final data = await _supabaseService.getGuruByProfileId(profileId);
+
+  //     if (data != null) {
+  //       // ✅ FIX: Create GuruModel then cast to Entity
+  //       final guru = GuruModel.fromJson(data);
+  //       _guruList = [guru];
+  //       _currentGuru = guru;
+  //       print('✅ Current guru loaded: ${guru.nama}');
+  //       print('   - Is Wali Kelas: ${guru.isWaliKelas}');
+  //       print('   - Wali Kelas: ${guru.waliKelas}');
+  //     } else {
+  //       _currentGuru = null;
+  //       print('⚠️ No guru found for profile ID: $profileId');
+  //     }
+  //   } catch (e) {
+  //     print('❌ Error fetching guru by profile ID: $e');
+  //     _errorMessage = e.toString();
+  //     _currentGuru = null;
+  //   } finally {
+  //     _isLoading = false;
+  //     notifyListeners();
+  //   }
+  // }
   Future<void> fetchGuruByProfileId(String profileId) async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
+      // Panggil fungsi service yang sudah diupdate
+      _currentGuru = await _supabaseService.getGuruByProfileId(profileId);
 
-      print('📚 Fetching guru by profile ID: $profileId');
-      final data = await _supabaseService.getGuruByProfileId(profileId);
-
-      if (data != null) {
-        // ✅ FIX: Create GuruModel then cast to Entity
-        final guru = GuruModel.fromJson(data);
-        _guruList = [guru];
-        _currentGuru = guru;
-        print('✅ Current guru loaded: ${guru.nama}');
-        print('   - Is Wali Kelas: ${guru.isWaliKelas}');
-        print('   - Wali Kelas: ${guru.waliKelas}');
-      } else {
-        _currentGuru = null;
-        print('⚠️ No guru found for profile ID: $profileId');
+      // Debugging untuk memastikan
+      if (_currentGuru != null) {
+        print('👨‍🏫 Guru Loaded: ${_currentGuru!.nama}');
+        print(
+          '🏫 Status Wali Kelas: ${_currentGuru!.isWaliKelas ? "YA (${_currentGuru!.waliKelas})" : "TIDAK"}',
+        );
       }
     } catch (e) {
-      print('❌ Error fetching guru by profile ID: $e');
+      print('Error fetching guru: $e');
       _errorMessage = e.toString();
-      _currentGuru = null;
     } finally {
       _isLoading = false;
       notifyListeners();

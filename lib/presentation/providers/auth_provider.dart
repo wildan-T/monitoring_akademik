@@ -29,14 +29,29 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _currentUser = await _supabaseService.getCurrentUser();
+      // 1. Cek apakah ada sesi login yang tersimpan di HP
+      final session = _supabaseService.supabase.auth.currentSession;
 
-      if (_currentUser != null) {
-        print('✅ User sudah login: ${_currentUser!.username}');
-        print('📋 Role: ${_currentUser!.role}');
-        print('📋 Is Active: ${_currentUser!.isActive}');
+      if (session != null) {
+        // 2. ⚠️ INI KUNCINYA: Jika ada sesi, ambil ulang data profile dari Database
+        // Jangan hanya mengandalkan session, karena session tidak memuat nama lengkap terbaru
+        final userDetail = await _supabaseService.getCurrentUser();
+
+        if (userDetail != null) {
+          _currentUser = userDetail;
+
+          // Opsional: Cek jika nama masih kosong, coba ambil dari tabel guru (Conditional Fetching)
+          if (_currentUser!.role == 'guru' &&
+              (_currentUser!.name.isEmpty ||
+                  _currentUser!.name == 'Tanpa Nama')) {
+            // Logic ambil nama guru bisa ditaruh sini atau dibiarkan di GuruProvider
+          }
+        } else {
+          // Jika user ada di Auth tapi tidak ada di tabel profiles (kasus aneh), logout paksa
+          await logout();
+        }
       } else {
-        print('ℹ️ Belum ada user yang login');
+        _currentUser = null;
       }
     } catch (e) {
       print('❌ Error checkAuthStatus: $e');

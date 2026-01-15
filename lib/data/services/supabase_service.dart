@@ -20,7 +20,7 @@ class SupabaseService {
     required String password,
   }) async {
     try {
-      // Langsung login ke Supabase Auth (tanpa cek username di database)
+      // 1. Login Auth
       final authResponse = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
@@ -30,14 +30,52 @@ class SupabaseService {
         throw Exception('Login gagal');
       }
 
-      // ✅ Get user profile
-      final profileResponse = await _supabase
+      final userId = authResponse.user!.id;
+
+      // 2. Ambil data dasar dari Profiles
+      final profileData = await _supabase
           .from('profiles')
           .select()
-          .eq('id', authResponse.user!.id)
+          .eq('id', userId)
           .single();
 
-      return UserModel.fromJson(profileResponse);
+      String role = profileData['role'];
+      String namaLengkap =
+          profileData['nama_lengkap'] ?? ''; // Default dari profiles
+
+      // 3. 🔄 LOGIKA BARU: Cek Role & Ambil Nama dari Tabel Spesifik
+      if (role == 'guru') {
+        final guruData = await _supabase
+            .from('guru')
+            .select('nama_lengkap') // Ambil kolom nama_lengkap dari tabel guru
+            .eq(
+              'profile_id',
+              userId,
+            ) // Pastikan relasinya benar (profile_id atau id)
+            .maybeSingle(); // Pakai maybeSingle agar tidak error jika data belum ada
+
+        if (guruData != null && guruData['nama_lengkap'] != null) {
+          namaLengkap = guruData['nama_lengkap'];
+        }
+      } else if (role == 'wali_murid') {
+        // Asumsi tabel wali_murid strukturnya mirip
+        final waliData = await _supabase
+            .from('wali_murid')
+            .select('nama_lengkap')
+            .eq('profile_id', userId)
+            .maybeSingle();
+
+        if (waliData != null) {
+          namaLengkap = waliData['nama_lengkap'];
+        }
+      }
+
+      // 4. Update nama di objek JSON sebelum dikonversi ke Model
+      // Kita manipulasi map-nya agar UserModel menerima nama yang paling update
+      final updatedProfileData = Map<String, dynamic>.from(profileData);
+      updatedProfileData['nama_lengkap'] = namaLengkap;
+
+      return UserModel.fromJson(updatedProfileData);
     } catch (e) {
       print('❌ Error signInWithEmail: $e');
       rethrow;
@@ -409,28 +447,55 @@ class SupabaseService {
   }
 
   /// Get guru by profile_id
-  Future<Map<String, dynamic>?> getGuruByProfileId(String profileId) async {
+  // Future<Map<String, dynamic>?> getGuruByProfileId(String profileId) async {
+  //   try {
+  //     print('📚 Getting guru by profile ID: $profileId');
+  //     final response = await _supabase
+  //         .from('guru')
+  //         .select('*, profiles:profile_id(email, no_telepon, foto_profil)')
+  //         .eq('profile_id', profileId)
+  //         .maybeSingle();
+
+  //     // Fallback check on 'id' if profile_id match fails (legacy data support)
+  //     if (response == null) {
+  //       return await _supabase
+  //           .from('guru')
+  //           .select('*, profiles:profile_id(email, no_telepon, foto_profil)')
+  //           .eq('id', profileId)
+  //           .maybeSingle();
+  //     }
+
+  //     return response;
+  //   } catch (e) {
+  //     print('❌ Error getGuruByProfileId: $e');
+  //     return null;
+  //   }
+  // }
+  Future<GuruModel?> getGuruByProfileId(String profileId) async {
     try {
-      print('📚 Getting guru by profile ID: $profileId');
-      final response = await _supabase
+      // 1. Ambil Data Detail Guru
+      final guruResponse = await _supabase
           .from('guru')
           .select('*, profiles:profile_id(email, no_telepon, foto_profil)')
           .eq('profile_id', profileId)
           .maybeSingle();
 
-      // Fallback check on 'id' if profile_id match fails (legacy data support)
-      if (response == null) {
-        return await _supabase
-            .from('guru')
-            .select('*, profiles:profile_id(email, no_telepon, foto_profil)')
-            .eq('id', profileId)
-            .maybeSingle();
-      }
+      if (guruResponse == null) return null;
 
-      return response;
+      // 2. ✅ CEK TABEL KELAS
+      // Cari kelas yang wali_kelas_id-nya adalah profileId user ini
+      final kelasResponse = await _supabase
+          .from('kelas')
+          .select('id, nama_kelas, tingkat')
+          .eq('wali_kelas_id', profileId)
+          .maybeSingle(); // Mengembalikan null jika tidak ketemu (bukan wali kelas)
+
+      // 3. Gabungkan Data ke Model
+      // Kita kirim kelasResponse sebagai parameter tambahan
+      return GuruModel.fromJson(guruResponse, kelasData: kelasResponse);
     } catch (e) {
       print('❌ Error getGuruByProfileId: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -515,6 +580,28 @@ class SupabaseService {
     } catch (e) {
       print('❌ Error setting wali kelas: $e');
       return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getJadwalMengajar(
+    String guruId,
+    String tahunAjaranId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('jadwal_pelajaran')
+          .select('''
+          id,
+          kelas:kelas_id (id, nama_kelas),
+          mapel:mapel_id (id, nama_mapel)
+        ''')
+          .eq('guru_id', guruId)
+          .eq('tahun_pelajaran_id', tahunAjaranId); // Hanya tahun aktif
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error getJadwalMengajar: $e');
+      return [];
     }
   }
 
@@ -959,5 +1046,66 @@ class SupabaseService {
       print('❌ Error deleteTahunPelajaran: $e');
       rethrow;
     }
+  }
+
+  // ========================================
+  // 📅 JADWAL PELAJARAN MANAGEMENT
+  // ========================================
+
+  /// Get Jadwal by Tahun Ajaran & Kelas (Opsional filter kelas)
+  Future<List<Map<String, dynamic>>> fetchJadwalPelajaran({
+    required String tahunPelajaranId,
+    String? kelasId, // Filter opsional
+  }) async {
+    try {
+      var query = _supabase
+          .from('jadwal_pelajaran')
+          .select('''
+            *,
+            guru:guru_id(nama_lengkap),
+            kelas:kelas_id(nama_kelas),
+            mapel:mapel_id(nama_mapel)
+          ''')
+          .eq('tahun_pelajaran_id', tahunPelajaranId);
+
+      if (kelasId != null) {
+        query = query.eq('kelas_id', kelasId);
+      }
+
+      // Order by Hari (Manual sorting nanti di Provider/UI karena Hari string)
+      // Order by Jam Mulai
+      final response = await query.order('jam_mulai', ascending: true);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error fetchJadwalPelajaran: $e');
+      rethrow;
+    }
+  }
+
+  /// Create Jadwal
+  Future<void> createJadwal({
+    required String guruId,
+    required String kelasId,
+    required String mapelId,
+    required String tahunPelajaranId,
+    required String hari,
+    required String jamMulai,
+    required String jamSelesai,
+  }) async {
+    await _supabase.from('jadwal_pelajaran').insert({
+      'guru_id': guruId,
+      'kelas_id': kelasId,
+      'mapel_id': mapelId,
+      'tahun_pelajaran_id': tahunPelajaranId,
+      'hari': hari,
+      'jam_mulai': jamMulai,
+      'jam_selesai': jamSelesai,
+    });
+  }
+
+  /// Delete Jadwal
+  Future<void> deleteJadwal(String id) async {
+    await _supabase.from('jadwal_pelajaran').delete().eq('id', id);
   }
 }

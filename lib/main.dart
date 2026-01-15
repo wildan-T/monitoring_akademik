@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\main.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/providers/jadwal_provider.dart';
 import 'package:monitoring_akademik/presentation/providers/tahun_pelajaran_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -66,6 +67,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(
+          create: (_) =>
+              AuthProvider()
+                ..checkAuthStatus(), // ✅ Panggil di sini dengan (..)
+        ),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => GuruProvider()),
@@ -75,6 +81,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => KelasProvider()),
         ChangeNotifierProvider(create: (_) => MataPelajaranProvider()),
         ChangeNotifierProvider(create: (_) => TahunPelajaranProvider()),
+        ChangeNotifierProvider(create: (_) => JadwalProvider()),
         ChangeNotifierProvider(
           create: (_) => NilaiProvider(SupabaseService()),
         ), // ✅ FIXED

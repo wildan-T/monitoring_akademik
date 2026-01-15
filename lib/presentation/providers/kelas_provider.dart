@@ -6,6 +6,7 @@ class KelasProvider with ChangeNotifier {
   final SupabaseService _supabaseService = SupabaseService();
 
   List<KelasModel> _kelasList = [];
+  List<Map<String, dynamic>> _allGuruList = []; // Simpan master data guru
   List<Map<String, dynamic>> _guruOptions = []; // Untuk dropdown
 
   bool _isLoading = false;
@@ -16,53 +17,65 @@ class KelasProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // READ Data
+  // 1. Fetch Data
   Future<void> fetchAllKelas() async {
     _isLoading = true;
-    _errorMessage = null;
     notifyListeners();
 
     try {
-      // 1. Ambil data Kelas
+      // Ambil data Kelas
       final kelasData = await _supabaseService.fetchAllKelasData();
-      final List<KelasModel> tempKelas = kelasData
-          .map((e) => KelasModel.fromJson(e))
-          .toList();
+      _kelasList = kelasData.map((e) => KelasModel.fromJson(e)).toList();
 
-      // 2. Ambil data Guru (untuk mendapatkan profile_id dan nama_lengkap)
+      // Ambil data Guru Master
       final guruData = await _supabaseService.getAllGuru();
+      _allGuruList = List<Map<String, dynamic>>.from(guruData);
 
-      // Siapkan opsi dropdown (Hanya guru yang punya profile_id)
-      _guruOptions = guruData.where((g) => g['profile_id'] != null).map((g) {
-        return {
-          'profile_id': g['profile_id'],
-          'nama': g['nama_lengkap'] ?? g['nama'] ?? 'Guru',
-        };
-      }).toList();
-
-      // 3. Mapping Nama Wali Kelas
-      // Mencocokkan kelas.waliKelasId (profile_id) dengan guru.profile_id
-      for (var kelas in tempKelas) {
+      // Mapping Nama Wali (Logic lama tetap dipakai untuk display list)
+      for (var kelas in _kelasList) {
         if (kelas.waliKelasId != null) {
-          final guru = _guruOptions.firstWhere(
+          final guru = _allGuruList.firstWhere(
             (g) => g['profile_id'] == kelas.waliKelasId,
             orElse: () => {},
           );
-
           if (guru.isNotEmpty) {
-            kelas.namaWali = guru['nama'];
+            kelas.namaWali = guru['nama_lengkap'] ?? guru['nama'];
           }
         }
       }
-
-      _kelasList = tempKelas;
     } catch (e) {
-      print('Error fetching kelas: $e');
-      _errorMessage = 'Gagal memuat data kelas';
+      _errorMessage = 'Gagal memuat data: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // ✅ LOGIC BARU: Get Options Guru yang Tersedia
+  // Parameter currentWaliId diperlukan saat Edit, agar wali kelas saat ini tetap muncul di list
+  List<Map<String, dynamic>> getAvailableGuruOptions(String? currentWaliId) {
+    // 1. Kumpulkan semua ID wali kelas yang SUDAH TERPAKAI di kelas lain
+    final usedWaliIds = _kelasList
+        .where((k) => k.waliKelasId != null && k.waliKelasId != currentWaliId)
+        .map((k) => k.waliKelasId)
+        .toSet(); // Pakai Set biar unik dan cepat
+
+    // 2. Filter Guru: Hanya yang punya profile_id DAN tidak ada di list terpakai
+    return _allGuruList
+        .where((g) {
+          final String? pId = g['profile_id'];
+          if (pId == null) return false;
+
+          // Tampilkan jika: TIDAK terpakai ATAU ini adalah wali kelas yang sedang diedit
+          return !usedWaliIds.contains(pId);
+        })
+        .map((g) {
+          return {
+            'profile_id': g['profile_id'],
+            'nama': g['nama_lengkap'] ?? g['nama'] ?? 'Guru',
+          };
+        })
+        .toList();
   }
 
   // CREATE / UPDATE
