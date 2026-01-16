@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\admin\guru\guru_detail_screen.dart
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/color_constants.dart';
 import '../../../../domain/entities/guru_entity.dart';
@@ -11,6 +12,10 @@ class GuruDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tanggal = guru.tanggalLahir == null
+        ? '-'
+        : DateFormat('dd MMMM yyyy', 'id_ID').format(guru.tanggalLahir!);
+
     // ✅ Logic URL Foto Profil
     String? imageUrl;
     if (guru.fotoProfil != null && guru.fotoProfil!.isNotEmpty) {
@@ -135,6 +140,17 @@ class GuruDetailScreen extends StatelessWidget {
                     _buildDetailRow('No. Telepon', guru.noTelp ?? '-'),
                     const Divider(),
                     _buildDetailRow('Alamat', guru.alamat ?? '-'),
+                    const Divider(),
+                    _buildDetailRow('Tempat Lahir', guru.tempatLahir ?? '-'),
+                    const Divider(),
+                    _buildDetailRow('Tanggal Lahir', tanggal),
+                    const Divider(),
+                    _buildDetailRow(
+                      'Jenis Kelamin',
+                      guru.jenisKelamin == 'L' ? 'Laki-laki' : 'Perempuan',
+                    ),
+                    const Divider(),
+                    _buildDetailRow('Status Kepegawaian', guru.status ?? '-'),
                   ],
                 ),
               ),

@@ -2,14 +2,14 @@
 class KelasModel {
   final String id;
   final String namaKelas;
-  final int tingkat;
+  int? tingkat;
   final String? waliKelasId; // Ini adalah profile_id
   String? namaWali; // Diisi manual oleh Provider dari data Guru
 
   KelasModel({
     required this.id,
     required this.namaKelas,
-    required this.tingkat,
+    this.tingkat,
     this.waliKelasId,
     this.namaWali,
   });

@@ -1,9 +1,11 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\admin\guru\guru_list_screen.dart
 import 'package:flutter/material.dart';
-import 'package:monitoring_akademik/presentation/screens/admin/guru/guru_add_screen.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/constants/color_constants.dart';
 import '../../../providers/guru_provider.dart';
+import '../../../../core/constants/color_constants.dart';
+import '../../../../data/models/guru_model.dart';
+import 'guru_add_screen.dart';
+import 'guru_edit_screen.dart';
 
 class GuruListScreen extends StatefulWidget {
   const GuruListScreen({super.key});
@@ -16,138 +18,161 @@ class _GuruListScreenState extends State<GuruListScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<GuruProvider>().fetchAllGuru();
-    });
+    // Load data saat pertama kali buka
+    Future.microtask(() => context.read<GuruProvider>().fetchAllGuru());
+  }
+
+  // ✅ Fix: Pastikan parameter menerima GuruModel
+  void _confirmDelete(BuildContext context, GuruModel guru) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Data Guru?'),
+        content: Text('Apakah Anda yakin ingin menghapus data ${guru.nama}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              // Pastikan method deleteGuru ada di Provider
+              // Jika belum ada, gunakan method removeWaliKelas atau buat method delete baru
+              await context.read<GuruProvider>().deleteGuru(guru.id);
+              // ScaffoldMessenger.of(context).showSnackBar(
+              //   const SnackBar(
+              //     content: Text(
+              //       'Fitur hapus belum diimplementasikan di Provider',
+              //     ),
+              //   ),
+              // );
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Daftar Guru'),
+        title: const Text('Data Guru'),
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
+        foregroundColor: Colors.white,
       ),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
+        backgroundColor: AppColors.primary,
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const GuruAddScreen()),
+            MaterialPageRoute(builder: (_) => const GuruAddScreen()),
           );
         },
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: Consumer<GuruProvider>(
-        builder: (context, guruProvider, child) {
-          if (guruProvider.isLoading) {
+        builder: (context, provider, _) {
+          if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // ✅ FIX: error → errorMessage
-          if (guruProvider.errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: AppColors.error,
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Error: ${guruProvider.errorMessage}'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => guruProvider.fetchAllGuru(),
-                    child: const Text('Coba Lagi'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final guruList = guruProvider.guruList;
-
-          if (guruList.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 64,
-                    color: AppColors.textSecondary.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Belum ada data guru',
-                    style: TextStyle(
-                      color: AppColors.textSecondary.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-            );
+          if (provider.guruList.isEmpty) {
+            return const Center(child: Text('Belum ada data guru'));
           }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: guruList.length,
+            itemCount: provider.guruList.length,
             itemBuilder: (context, index) {
-              final guru = guruList[index];
+              // ✅ FIX DISINI: Lakukan casting dari Entity ke Model
+              final guru = provider.guruList[index] as GuruModel;
+
               return Card(
+                elevation: 2,
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
                     child: Text(
-                      guru.nama.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      guru.nama.isNotEmpty ? guru.nama[0].toUpperCase() : '?',
+                      style: TextStyle(color: AppColors.primary),
                     ),
                   ),
                   title: Text(
                     guru.nama,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 4),
-                      Text('NUPTK: ${guru.nuptk}'),
-                      if (guru.email != null) Text('Email: ${guru.email}'),
+                      Text('NIP: ${guru.nip ?? '-'}'),
+                      if (guru.isWaliKelas)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.green.shade200),
+                          ),
+                          child: Text(
+                            'Wali Kelas ${guru.waliKelas}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (guru.isWaliKelas)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'Wali Kelas',
-                            style: TextStyle(
-                              color: AppColors.success,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GuruEditScreen(guru: guru),
                             ),
-                          ),
-                        ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.chevron_right),
+                          );
+                        },
+                      ),
                     ],
                   ),
+                  // trailing: PopupMenuButton(
+                  //   onSelected: (value) {
+                  //     if (value == 'edit') {
+                  //       Navigator.push(
+                  //         context,
+                  //         MaterialPageRoute(
+                  //           builder: (_) => GuruEditScreen(guru: guru),
+                  //         ),
+                  //       );
+                  //     } else if (value == 'delete') {
+                  //       _confirmDelete(context, guru);
+                  //     }
+                  //   },
+                  //   itemBuilder: (ctx) => [
+                  //     const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  //     const PopupMenuItem(
+                  //       value: 'delete',
+                  //       child: Text(
+                  //         'Hapus',
+                  //         style: TextStyle(color: Colors.red),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                   onTap: () {
+                    // Detail Screen
                     Navigator.pushNamed(
                       context,
                       '/admin/guru-detail',

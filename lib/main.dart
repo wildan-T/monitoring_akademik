@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:monitoring_akademik/presentation/providers/jadwal_provider.dart';
 import 'package:monitoring_akademik/presentation/providers/tahun_pelajaran_provider.dart';
+import 'package:monitoring_akademik/presentation/screens/guru/jadwal/guru_jadwal_screen.dart';
+import 'package:monitoring_akademik/presentation/screens/guru/nilai/guru_pilih_mapel_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -19,7 +21,7 @@ import 'package:monitoring_akademik/presentation/screens/splash/splash_screen.da
 import 'package:monitoring_akademik/presentation/screens/auth/login_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/kelola_user_screen.dart';
-import 'package:monitoring_akademik/presentation/screens/admin/form_user_screen.dart';
+// import 'package:monitoring_akademik/presentation/screens/admin/user_edit_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/guru/guru_list_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/guru/guru_detail_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/guru/guru_dashboard_screen.dart';
@@ -68,23 +70,18 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) =>
-              AuthProvider()
-                ..checkAuthStatus(), // ✅ Panggil di sini dengan (..)
+          create: (_) => AuthProvider()
+            ..checkAuthStatus(), // ✅ Panggil di sini dengan cascade operator(..)
         ),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => GuruProvider()),
-        ChangeNotifierProvider(
-          create: (_) => SiswaProvider(SupabaseService()),
-        ), // ✅ FIXED
+        ChangeNotifierProvider(create: (_) => SiswaProvider()), // ✅ FIXED
         ChangeNotifierProvider(create: (_) => KelasProvider()),
         ChangeNotifierProvider(create: (_) => MataPelajaranProvider()),
         ChangeNotifierProvider(create: (_) => TahunPelajaranProvider()),
         ChangeNotifierProvider(create: (_) => JadwalProvider()),
-        ChangeNotifierProvider(
-          create: (_) => NilaiProvider(SupabaseService()),
-        ), // ✅ FIXED
+        ChangeNotifierProvider(create: (_) => NilaiProvider()), // ✅ FIXED
         ChangeNotifierProvider(
           create: (_) => AbsensiProvider(SupabaseService()),
         ), // ✅ FIXED
@@ -104,15 +101,16 @@ class MyApp extends StatelessWidget {
               const GuruDashboardScreen(),
           RouteConstants.waliMuridDashboard: (context) =>
               const WaliMuridDashboardScreen(),
-          '/admin/kelola-user': (context) => const KelolaUserScreen(),
-          '/admin/form-user': (context) => const FormUserScreen(),
+          '/admin/kelola-user': (context) => const UserListScreen(),
           '/admin/guru-list': (context) => const GuruListScreen(),
           '/lengkapi-profil-guru': (context) =>
               const LengkapiProfilGuruScreen(),
           '/guru-siswa-list': (context) => const SiswaListScreen(),
+          '/guru-nilai-input': (context) => const GuruPilihMapelScreen(),
           '/guru-absensi-input': (context) => const AbsensiInputScreen(),
           '/guru-absensi-rekap': (context) => const AbsensiRekapScreen(),
           '/guru-finalisasi-nilai': (context) => const FinalisasiNilaiScreen(),
+          '/guru-jadwal': (context) => const GuruJadwalScreen(),
         },
         onGenerateRoute: (settings) {
           // GuruDetailScreen - ✅ FIX TYPE CASTING
@@ -132,29 +130,29 @@ class MyApp extends StatelessWidget {
             );
           }
 
-          // NilaiInputScreen - ✅ FIX MISSING PARAMETERS
-          if (settings.name == '/guru-nilai-input') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return MaterialPageRoute(
-              builder: (context) => NilaiInputScreen(
-                guruId: args['guruId'] as String,
-                kelas: args['kelas'] as String,
-                mataPelajaran: args['mataPelajaran'] as String,
-                siswa: args['siswa'] as List<SiswaModel>,
-              ),
-            );
-          }
+          // // NilaiInputScreen - ✅ FIX MISSING PARAMETERS
+          // if (settings.name == '/guru-nilai-input') {
+          //   final args = settings.arguments as Map<String, dynamic>;
+          //   return MaterialPageRoute(
+          //     builder: (context) => NilaiInputScreen(
+          //       guruId: args['guruId'] as String,
+          //       kelas: args['kelas'] as String,
+          //       mataPelajaran: args['mataPelajaran'] as String,
+          //       siswa: args['siswa'] as List<SiswaModel>,
+          //     ),
+          //   );
+          // }
 
-          // NilaiRekapScreen
-          if (settings.name == '/guru-nilai-rekap') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return MaterialPageRoute(
-              builder: (context) => NilaiRekapScreen(
-                kelas: args['kelas'] as String,
-                mataPelajaran: args['mataPelajaran'] as String,
-              ),
-            );
-          }
+          // // NilaiRekapScreen
+          // if (settings.name == '/guru-nilai-rekap') {
+          //   final args = settings.arguments as Map<String, dynamic>;
+          //   return MaterialPageRoute(
+          //     builder: (context) => NilaiRekapScreen(
+          //       kelas: args['kelas'] as String,
+          //       mataPelajaran: args['mataPelajaran'] as String,
+          //     ),
+          //   );
+          // }
 
           return null;
         },

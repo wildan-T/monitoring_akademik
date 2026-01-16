@@ -1,34 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart'; // Jangan lupa import intl
+import 'package:intl/intl.dart'; // Import Intl
 import '../../../../core/constants/color_constants.dart';
 import '../../../../data/models/guru_model.dart';
 import '../../../providers/guru_provider.dart';
 
-class GuruAddScreen extends StatefulWidget {
-  const GuruAddScreen({super.key});
+class GuruEditScreen extends StatefulWidget {
+  final GuruModel guru;
+
+  const GuruEditScreen({super.key, required this.guru});
 
   @override
-  State<GuruAddScreen> createState() => _GuruAddScreenState();
+  State<GuruEditScreen> createState() => _GuruEditScreenState();
 }
 
-class _GuruAddScreenState extends State<GuruAddScreen> {
+class _GuruEditScreenState extends State<GuruEditScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers Utama
-  final _nipController = TextEditingController();
-  final _nuptkController = TextEditingController();
-  final _namaController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _noTelpController = TextEditingController();
-  final _alamatController = TextEditingController();
+  late TextEditingController _nuptkController;
+  late TextEditingController _nipController;
+  late TextEditingController _namaController;
+  late TextEditingController _emailController;
+  late TextEditingController _noTelpController;
+  late TextEditingController _alamatController;
 
   // ✅ Controllers Tambahan
-  final _tempatLahirController = TextEditingController();
-  final _pendidikanController =
-      TextEditingController(); // Bisa dropdown atau text
+  late TextEditingController _tempatLahirController;
+  late TextEditingController _pendidikanController;
 
-  DateTime? _selectedDate; // Untuk Tanggal Lahir
+  DateTime? _selectedDate;
   String? _selectedGender;
   String? _selectedStatus;
   String? _selectedAgama;
@@ -44,13 +44,41 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
     'Lainnya',
   ];
 
-  // Opsi Pendidikan
   final List<String> _pendidikanOptions = ['D3', 'S1', 'S2', 'S3', 'Lainnya'];
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize Controllers
+    _nuptkController = TextEditingController(text: widget.guru.nuptk);
+    _nipController = TextEditingController(text: widget.guru.nip);
+    _namaController = TextEditingController(text: widget.guru.nama);
+    _emailController = TextEditingController(text: widget.guru.email);
+    _noTelpController = TextEditingController(text: widget.guru.noTelp);
+    _alamatController = TextEditingController(text: widget.guru.alamat);
+
+    // ✅ Load Data Tambahan
+    _tempatLahirController = TextEditingController(
+      text: widget.guru.tempatLahir,
+    );
+    _pendidikanController = TextEditingController(
+      text: widget.guru.pendidikanTerakhir,
+    );
+
+    if (_agamaOptions.contains(widget.guru.agama)) {
+      _selectedAgama = widget.guru.agama;
+    } else {
+      _selectedAgama = null; // Atau handle custom
+    }
+    _selectedDate = widget.guru.tanggalLahir;
+    _selectedGender = widget.guru.jenisKelamin;
+    _selectedStatus = widget.guru.status;
+  }
+
+  @override
   void dispose() {
-    _nipController.dispose();
     _nuptkController.dispose();
+    _nipController.dispose();
     _namaController.dispose();
     _emailController.dispose();
     _noTelpController.dispose();
@@ -63,7 +91,7 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(1990),
+      initialDate: _selectedDate ?? DateTime(1990),
       firstDate: DateTime(1950),
       lastDate: DateTime.now(),
     );
@@ -72,16 +100,16 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
     }
   }
 
-  void _saveData() async {
+  void _updateData() async {
     if (!_formKey.currentState!.validate()) return;
 
     final provider = context.read<GuruProvider>();
 
-    final newGuru = GuruModel(
-      id: '',
+    // Update Objek dengan copyWith
+    final updatedGuru = widget.guru.copyWith(
       nuptk: _nuptkController.text.trim(),
-      nama: _namaController.text.trim(),
       nip: _nipController.text.trim(),
+      nama: _namaController.text.trim(),
       email: _emailController.text.trim(),
       noTelp: _noTelpController.text.trim(),
       alamat: _alamatController.text.trim(),
@@ -89,27 +117,27 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
       status: _selectedStatus,
 
       // ✅ Field Tambahan
-      agama: _selectedAgama,
       tempatLahir: _tempatLahirController.text.trim(),
       tanggalLahir: _selectedDate,
+      agama: _selectedAgama,
       pendidikanTerakhir: _pendidikanController.text.trim(),
     );
 
-    final success = await provider.addGuru(newGuru);
+    final success = await provider.updateGuru(updatedGuru);
 
     if (mounted) {
       if (success) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Berhasil menambah guru'),
+            content: Text('Berhasil update data guru'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(provider.errorMessage ?? 'Gagal menambah data'),
+            content: Text(provider.errorMessage ?? 'Gagal update data'),
             backgroundColor: Colors.red,
           ),
         );
@@ -121,7 +149,7 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah Guru Baru'),
+        title: const Text('Edit Data Guru'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -132,7 +160,7 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Bagian 1: Data Akun & Identitas ---
+              // --- Data Utama ---
               const Text(
                 'Data Utama',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -170,19 +198,18 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
                 validator: (val) =>
                     val == null || val.isEmpty ? 'Nama wajib diisi' : null,
               ),
-              const SizedBox(height: 16),
+              // const SizedBox(height: 16),
 
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email (Untuk Login)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
+              // TextFormField(
+              //   controller: _emailController,
+              //   decoration: const InputDecoration(
+              //     labelText: 'Email',
+              //     border: OutlineInputBorder(),
+              //   ),
+              // ),
               const SizedBox(height: 24),
 
-              // --- Bagian 2: Biodata Lengkap ---
+              // --- Biodata Lengkap ---
               const Text(
                 'Biodata Lengkap',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -254,27 +281,26 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
               ),
               const SizedBox(height: 16),
 
-              TextFormField(
-                controller: _noTelpController,
-                decoration: const InputDecoration(
-                  labelText: 'No. Telepon',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
-
+              // TextFormField(
+              //   controller: _noTelpController,
+              //   decoration: const InputDecoration(
+              //     labelText: 'No. Telepon',
+              //     border: OutlineInputBorder(),
+              //   ),
+              //   keyboardType: TextInputType.phone,
+              // ),
+              // const SizedBox(height: 16),
               TextFormField(
                 controller: _alamatController,
                 decoration: const InputDecoration(
-                  labelText: 'Alamat Lengkap',
+                  labelText: 'Alamat',
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 24),
 
-              // --- Bagian 3: Data Kepegawaian ---
+              // --- Kepegawaian ---
               const Text(
                 'Kepegawaian',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -317,21 +343,20 @@ class _GuruAddScreenState extends State<GuruAddScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Button Simpan
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: Consumer<GuruProvider>(
                   builder: (context, provider, _) {
                     return ElevatedButton(
-                      onPressed: provider.isLoading ? null : _saveData,
+                      onPressed: provider.isLoading ? null : _updateData,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                       ),
                       child: provider.isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
-                              'SIMPAN DATA',
+                              'UPDATE DATA',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

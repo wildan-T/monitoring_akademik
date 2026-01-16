@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\data\services\supabase_service.dart
 import 'package:monitoring_akademik/data/models/guru_model.dart';
+import 'package:monitoring_akademik/data/models/nilai_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 //import '../models/guru_model.dart';
@@ -9,6 +10,69 @@ class SupabaseService {
 
   // ✅ TAMBAHKAN GETTER INI:
   SupabaseClient get supabase => _supabase;
+
+  // ========================================
+  // 🔐 USER MANAGEMENT (ADMIN)
+  // ========================================
+
+  /// Ambil semua user dari tabel Profiles
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    try {
+      // Kita ambil profiles dan join ke tabel spesifik untuk detailnya
+      // Gunakan left join manual logic atau fetch terpisah
+      final response = await _supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Update Akun User via Edge Function
+  Future<void> updateUserAccount({
+    required String userId,
+    String? email,
+    String? password,
+    Map<String, dynamic>? metadata, // Isi: nama, no_telepon, pekerjaan, alamat
+  }) async {
+    final response = await _supabase.functions.invoke(
+      'manage-user',
+      body: {
+        'action': 'update',
+        'user_id': userId,
+        'email': email,
+        'password': password,
+        'data': metadata,
+      },
+    );
+
+    if (response.status != 200) {
+      throw Exception(response.data['error'] ?? 'Gagal update user');
+    }
+  }
+
+  /// Hapus User Total via Edge Function
+  Future<void> deleteUserPermanent(String userId) async {
+    final response = await _supabase.functions.invoke(
+      'manage-user',
+      body: {'action': 'delete', 'user_id': userId},
+    );
+
+    if (response.status != 200) {
+      throw Exception(response.data['error'] ?? 'Gagal hapus user');
+    }
+  }
+
+  /// Helper: Ambil Detail Wali Murid berdasarkan Profile ID
+  Future<Map<String, dynamic>?> getWaliDetail(String profileId) async {
+    return await _supabase
+        .from('wali_murid')
+        .select()
+        .eq('profile_id', profileId)
+        .maybeSingle();
+  }
 
   // ========================================
   // 🔐 AUTHENTICATION METHODS
@@ -158,21 +222,21 @@ class SupabaseService {
   // ========================================
 
   /// Get all users (untuk Super Admin)
-  Future<List<UserModel>> getAllUsers() async {
-    try {
-      final response = await _supabase
-          .from('profiles')
-          .select()
-          .order('created_at', ascending: false);
+  // Future<List<UserModel>> getAllUsers() async {
+  //   try {
+  //     final response = await _supabase
+  //         .from('profiles')
+  //         .select()
+  //         .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((json) => UserModel.fromJson(json))
-          .toList();
-    } catch (e) {
-      print('❌ Error getAllUsers: $e');
-      rethrow;
-    }
-  }
+  //     return (response as List)
+  //         .map((json) => UserModel.fromJson(json))
+  //         .toList();
+  //   } catch (e) {
+  //     print('❌ Error getAllUsers: $e');
+  //     rethrow;
+  //   }
+  // }
 
   /// Create user (Super Admin only)
   Future<UserModel?> createUser({
@@ -305,6 +369,77 @@ class SupabaseService {
   }
 
   // ========================================
+  // 👨‍🏫 GURU MANAGEMENT (CRUD)
+  // ========================================
+
+  /// Create Guru (Tambah Data)
+  // Future<void> createGuru(GuruModel guru) async {
+  //   try {
+  //     // Kita gunakan toJson() yang sudah kita rapikan sebelumnya
+  //     await _supabase.from('guru').insert(guru.toJson());
+  //   } catch (e) {
+  //     print('❌ Error createGuru: $e');
+  //     rethrow;
+  //   }
+  // }
+  Future<void> createGuru(GuruModel guru) async {
+    try {
+      // Panggil Edge Function
+      final response = await _supabase.functions.invoke(
+        'auth-function', // Nama function harus sama dengan saat deploy
+        body: {
+          'type': 'guru',
+          'data': {
+            // Kirim semua data yang diperlukan tabel
+            // Pastikan nama key SAMA PERSIS dengan nama kolom di database
+            'nuptk': guru.nuptk,
+            'nip': guru.nip,
+            'nama_lengkap': guru.nama,
+            'email': guru.email,
+            'jenis_kelamin': guru.jenisKelamin, // 'L' atau 'P'
+            // ✅ DATA TAMBAHAN (Tempat, Tanggal Lahir, Agama, Pendidikan)
+            'tempat_lahir': guru.tempatLahir,
+            'tanggal_lahir': guru.tanggalLahir
+                ?.toIso8601String(), // Format string YYYY-MM-DD
+            'agama': guru.agama,
+            'pendidikan_terakhir': guru.pendidikanTerakhir,
+            'alamat': guru.alamat,
+            'no_telepon': guru.noTelp,
+            'status_kepegawaian': guru.status,
+          },
+        },
+      );
+
+      if (response.status != 200) {
+        throw Exception('Gagal: ${response.data}');
+      }
+    } catch (e) {
+      print('❌ Error createGuru via Edge Function: $e');
+      rethrow;
+    }
+  }
+
+  /// Update Guru (Edit Data)
+  Future<void> updateGuru(GuruModel guru) async {
+    try {
+      await _supabase.from('guru').update(guru.toJson()).eq('id', guru.id);
+    } catch (e) {
+      print('❌ Error updateGuru: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete Guru (Hapus Data)
+  Future<void> deleteGuru(String id) async {
+    try {
+      await _supabase.from('guru').delete().eq('id', id);
+    } catch (e) {
+      print('❌ Error deleteGuru: $e');
+      rethrow;
+    }
+  }
+
+  // ========================================
   // ➕ CREATE GURU ACCOUNT & DATA
   // ========================================
 
@@ -430,18 +565,99 @@ class SupabaseService {
   // ========================================
 
   /// Get all guru
+  // Future<List<Map<String, dynamic>>> getAllGuru() async {
+  //   try {
+  //     print('📚 Fetching all guru...');
+  //     final response = await _supabase
+  //         .from('guru')
+  //         .select('*, profiles:profile_id(email, no_telepon, foto_profil)')
+  //         .order('created_at', ascending: false);
+
+  //     print('✅ Fetched ${(response as List).length} guru');
+  //     return List<Map<String, dynamic>>.from(response);
+  //   } catch (e) {
+  //     print('❌ Error getAllGuru: $e');
+  //     rethrow;
+  //   }
+  // }
+
   Future<List<Map<String, dynamic>>> getAllGuru() async {
     try {
-      print('📚 Fetching all guru...');
-      final response = await _supabase
-          .from('guru')
-          .select('*, profiles:profile_id(email, no_telepon, foto_profil)')
-          .order('created_at', ascending: false);
+      // ✅ FIX: Gunakan sintaks JOIN yang sama persis dengan getGuruById
+      // profiles:profile_id(...) artinya ambil tabel profiles lewat foreign key profile_id
+      final responseGuru = await _supabase.from('guru').select('''
+      *,
+      profiles:profiles!guru_profile_id_fkey (
+        email,
+        no_telepon
+      )
+    ''');
 
-      print('✅ Fetched ${(response as List).length} guru');
-      return List<Map<String, dynamic>>.from(response);
+      // Ambil data Kelas (untuk cek wali kelas)
+      final responseKelas = await _supabase
+          .from('kelas')
+          .select('nama_kelas, wali_kelas_id');
+
+      final List<Map<String, dynamic>> listKelas =
+          List<Map<String, dynamic>>.from(responseKelas);
+      final List<Map<String, dynamic>> mergedData =
+          List<Map<String, dynamic>>.from(responseGuru);
+
+      // Gabungkan Data
+      for (var guru in mergedData) {
+        final profileId = guru['profile_id'];
+
+        if (profileId != null) {
+          final Map<String, dynamic>? kelasWali = listKelas
+              .where((k) => k['wali_kelas_id'] == profileId)
+              .firstOrNull;
+
+          if (kelasWali != null) {
+            // Inject data kelas
+            guru['kelas'] = {'nama_kelas': kelasWali['nama_kelas']};
+            guru['is_wali_kelas'] = true;
+          }
+        }
+      }
+
+      return mergedData;
     } catch (e) {
       print('❌ Error getAllGuru: $e');
+      rethrow;
+    }
+  }
+
+  /// Ambil Daftar Kelas yang diajar oleh Guru (Distinct)
+  /// Logic: Cek tabel 'jadwal_pelajaran' -> ambil 'kelas_id' -> distinct
+  Future<List<Map<String, dynamic>>> getKelasMengajarGuru(
+    String guruId,
+    String tahunId,
+  ) async {
+    try {
+      // 1. Ambil semua jadwal guru di tahun aktif
+      final response = await _supabase
+          .from('jadwal_pelajaran')
+          .select('kelas:kelas_id(id, nama_kelas)') // Join ke tabel kelas
+          .eq('guru_id', guruId)
+          .eq('tahun_pelajaran_id', tahunId);
+
+      // 2. Filter Distinct (Hilangkan duplikat kelas)
+      // Karena guru bisa mengajar di 7A hari Senin DAN Kamis, kita cuma butuh list kelasnya sekali.
+      final uniqueKelas = <String, Map<String, dynamic>>{};
+
+      for (var item in response) {
+        final kelasData = item['kelas'] as Map<String, dynamic>?;
+        if (kelasData != null) {
+          final id = kelasData['id'];
+          if (!uniqueKelas.containsKey(id)) {
+            uniqueKelas[id.toString()] = kelasData;
+          }
+        }
+      }
+
+      return uniqueKelas.values.toList();
+    } catch (e) {
+      print('❌ Error getKelasMengajarGuru: $e');
       rethrow;
     }
   }
@@ -476,7 +692,7 @@ class SupabaseService {
       // 1. Ambil Data Detail Guru
       final guruResponse = await _supabase
           .from('guru')
-          .select('*, profiles:profile_id(email, no_telepon, foto_profil)')
+          .select('*, profiles:profile_id(email, no_telepon)')
           .eq('profile_id', profileId)
           .maybeSingle();
 
@@ -628,6 +844,106 @@ class SupabaseService {
   }
 
   // ========================================
+  // 🎓 SISWA MANAGEMENT
+  // ========================================
+
+  /// Ambil Semua Siswa (Lengkap dengan Kelas & Info Wali)
+  Future<List<Map<String, dynamic>>> getAllSiswa() async {
+    try {
+      // 1. Ambil Data Siswa + Nama Kelas
+      final responseSiswa = await _supabase
+          .from('siswa')
+          .select('*, kelas(nama_kelas)')
+          .order('nama_lengkap', ascending: true);
+
+      // 2. Ambil Data Wali Murid (Join Profiles untuk email/telp)
+      // Kita ambil semua wali untuk dicocokkan di client side (lebih aman daripada deep join yg rawan error)
+      final responseWali = await _supabase
+          .from('wali_murid')
+          .select(
+            'nama_lengkap, profile_id, profiles:profile_id(email, no_telepon)',
+          );
+
+      final List<Map<String, dynamic>> listSiswa =
+          List<Map<String, dynamic>>.from(responseSiswa);
+      final List<Map<String, dynamic>> listWali =
+          List<Map<String, dynamic>>.from(responseWali);
+
+      // 3. Gabungkan Data (Manual Merge)
+      for (var siswa in listSiswa) {
+        final waliProfileId = siswa['wali_murid_id'];
+
+        if (waliProfileId != null) {
+          // Cari data wali yang profile_id-nya cocok
+          final waliFound = listWali
+              .where((w) => w['profile_id'] == waliProfileId)
+              .firstOrNull;
+
+          if (waliFound != null) {
+            // Extract info profil
+            final profiles = waliFound['profiles'] as Map?;
+
+            // Inject ke objek siswa agar Model bisa membacanya
+            siswa['wali_data'] = {
+              'nama_lengkap': waliFound['nama_lengkap'],
+              'email': profiles?['email'],
+              'no_telepon': profiles?['no_telepon'],
+            };
+          }
+        }
+      }
+
+      return listSiswa;
+    } catch (e) {
+      print('❌ Error getAllSiswa: $e');
+      rethrow;
+    }
+  }
+
+  /// Tambah Siswa & Akun Wali (Via Edge Function)
+  Future<void> createSiswaAndWali(Map<String, dynamic> dataPayload) async {
+    try {
+      // Panggil Edge Function 'auth-function'
+      final response = await _supabase.functions.invoke(
+        'auth-function',
+        body: {
+          'type': 'siswa',
+          'data': dataPayload, // Pastikan key JSON sesuai dengan index.ts
+        },
+      );
+
+      if (response.status != 200) {
+        throw Exception(response.data['error'] ?? 'Gagal membuat data siswa');
+      }
+    } catch (e) {
+      print('❌ Error createSiswaAndWali: $e');
+      rethrow;
+    }
+  }
+
+  /// Update Data Siswa (Hanya tabel siswa)
+  Future<void> updateSiswa(String id, Map<String, dynamic> data) async {
+    try {
+      await _supabase.from('siswa').update(data).eq('id', id);
+    } catch (e) {
+      print('❌ Error updateSiswa: $e');
+      rethrow;
+    }
+  }
+
+  /// Hapus Siswa
+  Future<void> deleteSiswa(String id) async {
+    try {
+      // Note: Idealnya, jika wali murid hanya punya 1 anak ini, akun walinya juga dihapus.
+      // Tapi untuk sekarang kita hapus siswanya saja dulu.
+      await _supabase.from('siswa').delete().eq('id', id);
+    } catch (e) {
+      print('❌ Error deleteSiswa: $e');
+      rethrow;
+    }
+  }
+
+  // ========================================
   // 👨‍👩‍👧 SISWA & WALI MURID METHODS
   // ========================================
 
@@ -712,6 +1028,48 @@ class SupabaseService {
     } catch (e) {
       print('❌ Error createSiswaWithWali: $e');
       rethrow;
+    }
+  }
+
+  /// ✅ Ambil Siswa berdasarkan Kelas ID (Lengkap dengan data Wali)
+  /// Ambil Siswa berdasarkan Kelas ID (Dengan Auto-Retry)
+  Future<List<Map<String, dynamic>>> getSiswaByKelasId(String kelasId) async {
+    // 1. Kita bungkus logic request ke dalam fungsi internal
+    Future<List<Map<String, dynamic>>> performRequest() async {
+      final response = await _supabase
+          .from('siswa')
+          .select('''
+            *,
+            kelas:kelas_id(nama_kelas),  
+            profiles:wali_murid_id (     
+              email,
+              no_telepon,
+              wali_murid (
+                nama_lengkap
+              )
+            )
+          ''')
+          .eq('kelas_id', kelasId)
+          .order('nama_lengkap', ascending: true);
+
+      return List<Map<String, dynamic>>.from(response);
+    }
+
+    // 2. Eksekusi dengan mekanisme Retry
+    try {
+      // Percobaan Pertama
+      return await performRequest();
+    } catch (e) {
+      print('⚠️ Gagal ambil siswa (Attempt 1), mencoba lagi... Error: $e');
+      try {
+        // Percobaan Kedua (Tunggu 500ms lalu coba lagi)
+        await Future.delayed(const Duration(milliseconds: 500));
+        return await performRequest();
+      } catch (e2) {
+        // Jika masih gagal, baru lempar error ke UI
+        print('❌ Error getSiswaByKelasId (Final): $e2');
+        rethrow;
+      }
     }
   }
 
@@ -1107,5 +1465,347 @@ class SupabaseService {
   /// Delete Jadwal
   Future<void> deleteJadwal(String id) async {
     await _supabase.from('jadwal_pelajaran').delete().eq('id', id);
+  }
+
+  /// Get Jadwal Khusus Guru Tertentu
+  Future<List<Map<String, dynamic>>> fetchJadwalByGuru({
+    required String guruId,
+    required String tahunPelajaranId,
+  }) async {
+    try {
+      final response = await _supabase
+          .from('jadwal_pelajaran')
+          .select('''
+            *,
+            kelas:kelas_id(nama_kelas),
+            mapel:mapel_id(nama_mapel)
+          ''')
+          .eq('guru_id', guruId)
+          .eq('tahun_pelajaran_id', tahunPelajaranId)
+          .order('jam_mulai', ascending: true); // Urutkan berdasarkan jam
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error fetchJadwalByGuru: $e');
+      rethrow;
+    }
+  }
+
+  // ========================================
+  // 📝 FITUR INPUT NILAI
+  // ========================================
+
+  /// Ambil Nilai berdasarkan Filter (Kelas, Mapel, Tahun)
+  Future<List<NilaiModel>> getNilaiByFilter({
+    required String kelasId,
+    required String mapelId,
+    required String tahunId,
+  }) async {
+    try {
+      final response = await _supabase
+          .from('nilai')
+          .select()
+          .eq('kelas_id', kelasId)
+          .eq('mata_pelajaran_id', mapelId)
+          .eq('tahun_pelajaran_id', tahunId);
+
+      return (response as List).map((e) => NilaiModel.fromJson(e)).toList();
+    } catch (e) {
+      print('❌ Error getNilaiByFilter: $e');
+      rethrow;
+    }
+  }
+
+  /// Simpan Nilai (Upsert: Insert jika belum ada, Update jika ada)
+  Future<void> saveNilai(NilaiModel nilai) async {
+    try {
+      // Cek apakah data sudah ada berdasarkan (siswa, mapel, tahun)
+      // Ini penting karena kita tidak bisa mengandalkan ID jika ini data baru
+      final existing = await _supabase
+          .from('nilai')
+          .select('id')
+          .eq('siswa_id', nilai.siswaId)
+          .eq('mata_pelajaran_id', nilai.mataPelajaranId)
+          .eq('tahun_pelajaran_id', nilai.tahunPelajaranId)
+          .maybeSingle();
+
+      if (existing != null) {
+        // UPDATE
+        await _supabase
+            .from('nilai')
+            .update(
+              nilai.toJson(),
+            ) // Pastikan toJson punya field yang mau diupdate
+            .eq('id', existing['id']);
+      } else {
+        // INSERT
+        // Hapus 'id' dari map agar digenerate otomatis oleh UUID v4 di DB
+        final data = nilai.toJson();
+        data.remove('id');
+        await _supabase.from('nilai').insert(data);
+      }
+    } catch (e) {
+      print('❌ Error saveNilai: $e');
+      rethrow;
+    }
+  }
+
+  /// Ambil Daftar Mapel & Kelas yang diajar Guru (Untuk Menu Input Nilai)
+  /// Ambil Daftar Mapel & Kelas (Dengan Auto-Retry)
+  Future<List<Map<String, dynamic>>> getJadwalMapelGuru(
+    String guruId,
+    String tahunId,
+  ) async {
+    // Fungsi internal untuk melakukan request
+    Future<List<Map<String, dynamic>>> performRequest() async {
+      final response = await _supabase
+          .from('jadwal_pelajaran')
+          .select('''
+            id,
+            mata_pelajaran(id, nama_mapel),
+            kelas(id, nama_kelas)
+          ''')
+          .eq('guru_id', guruId)
+          .eq('tahun_pelajaran_id', tahunId);
+
+      final uniqueItems = <String, Map<String, dynamic>>{};
+
+      for (var item in response) {
+        final mapel = item['mata_pelajaran'];
+        final kelas = item['kelas'];
+
+        if (mapel != null && kelas != null) {
+          final key = "${kelas['id']}_${mapel['id']}";
+          if (!uniqueItems.containsKey(key)) {
+            uniqueItems[key] = {
+              'kelas_id': kelas['id'],
+              'nama_kelas': kelas['nama_kelas'],
+              'mapel_id': mapel['id'],
+              'nama_mapel': mapel['nama_mapel'],
+            };
+          }
+        }
+      }
+      return uniqueItems.values.toList();
+    }
+
+    // --- LOGIC RETRY ---
+    try {
+      // Percobaan Pertama
+      return await performRequest();
+    } catch (e) {
+      print('⚠️ Percobaan pertama gagal ($e), mencoba lagi...');
+      try {
+        // Percobaan Kedua (Retry)
+        // Beri jeda sedikit (opsional)
+        await Future.delayed(const Duration(milliseconds: 500));
+        return await performRequest();
+      } catch (e2) {
+        // Jika masih gagal, baru lempar error ke UI
+        print('❌ Error getJadwalMapelGuru (Final): $e2');
+        rethrow;
+      }
+    }
+  }
+
+  /// Ambil Nilai Lengkap Siswa untuk Rapor (Join Mapel & Guru)
+  Future<List<Map<String, dynamic>>> getNilaiRaporSiswa(
+    String siswaId,
+    String tahunId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('nilai')
+          .select('''
+            *,
+            mata_pelajaran(nama_mapel)
+          ''') // Join ke mapel
+          .eq('siswa_id', siswaId)
+          .eq('tahun_pelajaran_id', tahunId);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error getNilaiRaporSiswa: $e');
+      rethrow;
+    }
+  }
+
+  /// Ambil Kelas dimana User ini menjadi Wali Kelas
+  /// LOGIC BARU: Langsung cek wali_kelas_id = Profile ID (Auth ID)
+  Future<Map<String, dynamic>?> getKelasByWaliProfileId(
+    String profileId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('kelas')
+          .select('*')
+          .eq('wali_kelas_id', profileId) // Langsung pakai ID Login
+          .maybeSingle(); // Ambil satu, return null jika tidak ada
+
+      return response;
+    } catch (e) {
+      print('❌ Error getKelasByWaliProfileId: $e');
+      return null;
+    }
+  }
+
+  /// 📊 REKAP NILAI: Ambil Nilai semua siswa di kelas & mapel tertentu
+  Future<List<Map<String, dynamic>>> getRekapNilaiKelas({
+    required String kelasId,
+    required String mapelId,
+    required String tahunId,
+  }) async {
+    try {
+      // 1. Ambil Semua Siswa di Kelas tersebut dulu
+      final resSiswa = await _supabase
+          .from('siswa')
+          .select('id, nama_lengkap, nisn')
+          .eq('kelas_id', kelasId)
+          .order('nama_lengkap', ascending: true);
+
+      // 2. Ambil Nilai yang sudah diinput untuk kelas & mapel ini
+      final resNilai = await _supabase
+          .from('nilai')
+          .select()
+          .eq('kelas_id', kelasId)
+          .eq('mata_pelajaran_id', mapelId)
+          .eq('tahun_pelajaran_id', tahunId);
+
+      // 3. Gabungkan Data (Manual Left Join)
+      // Kita ingin SEMUA siswa tampil, meskipun belum punya nilai
+      List<Map<String, dynamic>> rekapList = [];
+
+      for (var siswa in resSiswa) {
+        // Cari nilai milik siswa ini
+        Map<String, dynamic>? nilaiData;
+
+        for (final n in resNilai) {
+          if (n['siswa_id'] == siswa['id']) {
+            nilaiData = n;
+            break;
+          }
+        }
+
+        rekapList.add({
+          'siswa': siswa, // Data Siswa (Nama, NISN)
+          'nilai': nilaiData, // Data Nilai (Bisa null jika belum dinilai)
+        });
+      }
+
+      return rekapList;
+    } catch (e) {
+      print('❌ Error getRekapNilaiKelas: $e');
+      rethrow;
+    }
+  }
+
+  /// Ambil Daftar Mapel di suatu Kelas (Untuk Wali Kelas melihat Rekap)
+  Future<List<Map<String, dynamic>>> getMapelDiKelas(
+    String kelasId,
+    String tahunId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('jadwal_pelajaran')
+          .select('mata_pelajaran(id, nama_mapel)')
+          .eq('kelas_id', kelasId)
+          .eq('tahun_pelajaran_id', tahunId);
+
+      // Filter Unik (Distinct) karena 1 mapel bisa ada di 2 hari jadwal
+      final uniqueMapel = <String, Map<String, dynamic>>{};
+
+      for (var item in response) {
+        final mapel = item['mata_pelajaran'];
+        if (mapel != null) {
+          final id = mapel['id'];
+          if (!uniqueMapel.containsKey(id)) {
+            uniqueMapel[id] = mapel;
+          }
+        }
+      }
+
+      return uniqueMapel.values.toList();
+    } catch (e) {
+      print('❌ Error getMapelDiKelas: $e');
+      return [];
+    }
+  }
+
+  /// Ambil data absensi siswa pada tanggal & MAPEL tertentu
+  Future<List<Map<String, dynamic>>> getAbsensiByMapelTanggal(
+    String kelasId,
+    String mapelId,
+    String tanggal,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('absensi')
+          .select()
+          .eq('kelas_id', kelasId)
+          .eq('mata_pelajaran_id', mapelId) // ✅ Filter by Mapel
+          .eq('tanggal', tanggal);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error getAbsensiByMapelTanggal: $e');
+      return [];
+    }
+  }
+
+  /// Simpan Absensi (Bulk Upsert) dengan Mapel ID
+  Future<void> saveAbsensiBatch(List<Map<String, dynamic>> dataAbsensi) async {
+    try {
+      await _supabase
+          .from('absensi')
+          .upsert(
+            dataAbsensi,
+            onConflict:
+                'siswa_id, tanggal, mata_pelajaran_id', // ✅ Constraint Baru
+          );
+    } catch (e) {
+      print('❌ Error saveAbsensiBatch: $e');
+      rethrow;
+    }
+  }
+
+  /// 👮 ADMIN: Ambil Rekap Nilai per Kelas & Mapel
+  Future<List<Map<String, dynamic>>> getAdminRekapNilai({
+    required String kelasId,
+    required String mapelId,
+    required String tahunId,
+  }) async {
+    try {
+      // 1. Ambil Siswa di Kelas tersebut
+      final resSiswa = await _supabase
+          .from('siswa')
+          .select('id, nama_lengkap, nisn')
+          .eq('kelas_id', kelasId)
+          .order('nama_lengkap', ascending: true);
+
+      // 2. Ambil Data Nilai
+      final resNilai = await _supabase
+          .from('nilai')
+          .select()
+          .eq('kelas_id', kelasId)
+          .eq('mata_pelajaran_id', mapelId)
+          .eq('tahun_pelajaran_id', tahunId);
+
+      // 3. Gabungkan Data (Mapping)
+      List<Map<String, dynamic>> result = [];
+      for (var siswa in resSiswa) {
+        // ✅ PERBAIKAN: Gunakan .where() lalu cek isNotEmpty
+        final cekData = resNilai.where((n) => n['siswa_id'] == siswa['id']);
+        final nilaiData = cekData.isNotEmpty ? cekData.first : null;
+
+        result.add({
+          'siswa': siswa,
+          'nilai': nilaiData, // Bisa null sekarang
+        });
+      }
+
+      return result;
+    } catch (e) {
+      print('❌ Error getAdminRekapNilai: $e');
+      rethrow;
+    }
   }
 }

@@ -17,39 +17,97 @@ class GuruProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  // ========================================
+  // ⚡ CRUD OPERATIONS
+  // ========================================
+
+  /// Tambah Guru Baru
   Future<bool> addGuru(GuruModel guru) async {
     _isLoading = true;
-    _errorMessage = null;
     notifyListeners();
 
     try {
-      // Skenario: Password default adalah NIP atau NUPTK
-      final defaultPassword = '123456';
-
-      final success = await _supabaseService.createGuruAccount(
-        guru: guru,
-        password: defaultPassword, // 🔐 Password default
-      );
-
-      if (success) {
-        // Refresh list lokal agar data terbaru muncul
-        await fetchAllGuru();
-        _errorMessage = null;
-      } else {
-        _errorMessage = 'Gagal menyimpan data ke database';
-      }
-
+      await _supabaseService.createGuru(guru);
+      await fetchAllGuru(); // Refresh list setelah tambah
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal menambah guru: $e';
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return success;
+    }
+  }
+
+  /// Edit Guru
+  Future<bool> updateGuru(GuruModel guru) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _supabaseService.updateGuru(guru);
+      await fetchAllGuru(); // Refresh list setelah update
+      return true;
     } catch (e) {
-      print('❌ ERROR addGuru: $e');
-      _errorMessage = e.toString();
+      _errorMessage = 'Gagal mengupdate guru: $e';
+      return false;
+    } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Hapus Guru
+  Future<bool> deleteGuru(String id) async {
+    try {
+      await _supabaseService.deleteGuru(id);
+
+      // Hapus dari list lokal agar UI langsung update tanpa loading
+      _guruList.removeWhere((item) => item.id == id);
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      _errorMessage =
+          'Gagal menghapus guru. Data mungkin terkait dengan kelas/jadwal.';
       notifyListeners();
       return false;
     }
   }
+
+  // Future<bool> addGuru(GuruModel guru) async {
+  //   _isLoading = true;
+  //   _errorMessage = null;
+  //   notifyListeners();
+
+  //   try {
+  //     // Skenario: Password default adalah NIP atau NUPTK
+  //     final defaultPassword = '123456';
+
+  //     final success = await _supabaseService.createGuruAccount(
+  //       guru: guru,
+  //       password: defaultPassword, // 🔐 Password default
+  //     );
+
+  //     if (success) {
+  //       // Refresh list lokal agar data terbaru muncul
+  //       await fetchAllGuru();
+  //       _errorMessage = null;
+  //     } else {
+  //       _errorMessage = 'Gagal menyimpan data ke database';
+  //     }
+
+  //     _isLoading = false;
+  //     notifyListeners();
+  //     return success;
+  //   } catch (e) {
+  //     print('❌ ERROR addGuru: $e');
+  //     _errorMessage = e.toString();
+  //     _isLoading = false;
+  //     notifyListeners();
+  //     return false;
+  //   }
+  // }
 
   // ✅ FETCH ALL GURU - FIXED
   Future<void> fetchAllGuru() async {

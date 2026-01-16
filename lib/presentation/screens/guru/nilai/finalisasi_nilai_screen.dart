@@ -31,10 +31,10 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
 
     if (_selectedMataPelajaran != null) {
       final nilaiProvider = Provider.of<NilaiProvider>(context, listen: false);
-      await nilaiProvider.fetchNilaiByKelasAndMapel(
-        kelasId: _selectedKelas!,
-        mataPelajaranId: _selectedMataPelajaran!,
-      );
+      // await nilaiProvider.fetchNilaiByKelasAndMapel(
+      //   kelasId: _selectedKelas!,
+      //   mataPelajaranId: _selectedMataPelajaran!,
+      // );
     }
   }
 
@@ -48,50 +48,49 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Konfirmasi Finalisasi'),
-            content: const Text(
-              'Nilai yang sudah difinalisasi tidak dapat diubah lagi. Lanjutkan?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Batal'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                child: const Text('Ya, Finalisasi'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Finalisasi'),
+        content: const Text(
+          'Nilai yang sudah difinalisasi tidak dapat diubah lagi. Lanjutkan?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
           ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Ya, Finalisasi'),
+          ),
+        ],
+      ),
     );
 
     if (confirm != true || !mounted) return;
 
     final nilaiProvider = Provider.of<NilaiProvider>(context, listen: false);
-    final success = await nilaiProvider.finalisasiNilai(
-      kelasId: _selectedKelas!,
-      mataPelajaranId: _selectedMataPelajaran!,
-    );
+    // final success = await nilaiProvider.finalisasiNilai(
+    //   kelasId: _selectedKelas!,
+    //   mataPelajaranId: _selectedMataPelajaran!,
+    // );
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? '✅ Nilai berhasil difinalisasi'
-              : '❌ Gagal finalisasi nilai',
-        ),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
-    );
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    // content: Text(
+    // success
+    // ? '✅ Nilai berhasil difinalisasi'
+    // : '❌ Gagal finalisasi nilai',
+    // ),
+    // backgroundColor: success ? Colors.green : Colors.red,
+    //   ),
+    // );
 
-    if (success) {
-      Navigator.pop(context);
-    }
+    // if (success) {
+    //   Navigator.pop(context);
+    // }
   }
 
   @override
@@ -114,15 +113,12 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
                     filled: true,
                     fillColor: Colors.white,
                   ),
-                  items:
-                      ['7A', '7B', '8A', '8B', '9A', '9B']
-                          .map(
-                            (kelas) => DropdownMenuItem(
-                              value: kelas,
-                              child: Text(kelas),
-                            ),
-                          )
-                          .toList(),
+                  items: ['7A', '7B', '8A', '8B', '9A', '9B']
+                      .map(
+                        (kelas) =>
+                            DropdownMenuItem(value: kelas, child: Text(kelas)),
+                      )
+                      .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedKelas = value;
@@ -173,79 +169,79 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (provider.nilaiList.isEmpty) {
-                  return const Center(
-                    child: Text('Belum ada data nilai untuk kelas ini'),
-                  );
-                }
+                // if (provider.nilaiList.isEmpty) {
+                //   return const Center(
+                //     child: Text('Belum ada data nilai untuk kelas ini'),
+                //   );
+                // }
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: provider.nilaiList.length,
+                  // itemCount: provider.nilaiList.length,
                   itemBuilder: (context, index) {
-                    final nilai = provider.nilaiList[index];
+                    // final nilai = provider.nilaiList[index];
 
-                    // ✅ FIX: Gunakan akses Map ['key'] dan null safety
-                    final siswaNama =
-                        nilai.siswa is Map ? nilai.siswa['nama'] : 'Unknown';
-                    final siswaNis =
-                        nilai.siswa is Map ? nilai.siswa['nis'] : '-';
-                    final nilaiAkhir = nilai.nilaiAkhir ?? 0.0; // Handle null
-                    final grade =
-                        nilaiAkhir >= 90
-                            ? 'A'
-                            : nilaiAkhir >= 80
-                            ? 'B'
-                            : nilaiAkhir >= 70
-                            ? 'C'
-                            : nilaiAkhir >= 60
-                            ? 'D'
-                            : 'E';
+                    // // ✅ FIX: Gunakan akses Map ['key'] dan null safety
+                    // final siswaNama =
+                    //     nilai.siswa is Map ? nilai.siswa['nama'] : 'Unknown';
+                    // final siswaNis =
+                    //     nilai.siswa is Map ? nilai.siswa['nis'] : '-';
+                    // final nilaiAkhir = nilai.nilaiAkhir ?? 0.0; // Handle null
+                    // final grade =
+                    //     nilaiAkhir >= 90
+                    //         ? 'A'
+                    //         : nilaiAkhir >= 80
+                    //         ? 'B'
+                    //         : nilaiAkhir >= 70
+                    //         ? 'C'
+                    //         : nilaiAkhir >= 60
+                    //         ? 'D'
+                    //         : 'E';
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        leading: CircleAvatar(child: Text('${index + 1}')),
-                        title: Text(
-                          siswaNama.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text('NIS: $siswaNis'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  nilaiAkhir.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                                Text(
-                                  'Grade: $grade',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              nilai.status == 'final'
-                                  ? Icons.check_circle
-                                  : Icons.pending,
-                              color:
-                                  nilai.status == 'final'
-                                      ? Colors.green
-                                      : Colors.orange,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    // return Card(
+                    //   margin: const EdgeInsets.only(bottom: 12),
+                    //   child: ListTile(
+                    //     leading: CircleAvatar(child: Text('${index + 1}')),
+                    //     title: Text(
+                    //       siswaNama.toString(),
+                    //       style: const TextStyle(fontWeight: FontWeight.bold),
+                    //     ),
+                    //     subtitle: Text('NIS: $siswaNis'),
+                    //     trailing: Row(
+                    //       mainAxisSize: MainAxisSize.min,
+                    //       children: [
+                    //         Column(
+                    //           mainAxisAlignment: MainAxisAlignment.center,
+                    //           crossAxisAlignment: CrossAxisAlignment.end,
+                    //           children: [
+                    //             Text(
+                    //               nilaiAkhir.toStringAsFixed(1),
+                    //               style: const TextStyle(
+                    //                 fontSize: 18,
+                    //                 fontWeight: FontWeight.bold,
+                    //                 color: Colors.blue,
+                    //               ),
+                    //             ),
+                    //             Text(
+                    //               'Grade: $grade',
+                    //               style: const TextStyle(fontSize: 12),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //         const SizedBox(width: 8),
+                    //         Icon(
+                    //           nilai.status == 'final'
+                    //               ? Icons.check_circle
+                    //               : Icons.pending,
+                    //           color:
+                    //               nilai.status == 'final'
+                    //                   ? Colors.green
+                    //                   : Colors.orange,
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
+                    // );
                   },
                 );
               },
@@ -267,25 +263,25 @@ class _FinalisasiNilaiScreenState extends State<FinalisasiNilaiScreen> {
             ),
             child: Consumer<NilaiProvider>(
               builder: (context, provider, _) {
-                final allFinal = provider.nilaiList.every(
-                  (n) => n.status == 'final',
-                );
+                // final allFinal = provider.nilaiList.every(
+                //   (n) => n.status == 'final',
+                // );
 
                 return SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed:
-                        provider.isLoading || allFinal ? null : _finalisasi,
-                    icon: Icon(allFinal ? Icons.check_circle : Icons.lock),
-                    label: Text(
-                      allFinal ? 'Sudah Difinalisasi' : 'Finalisasi Nilai',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: allFinal ? Colors.grey : Colors.green,
-                    ),
-                  ),
+                  // child: ElevatedButton.icon(
+                  // onPressed:
+                  //     provider.isLoading || allFinal ? null : _finalisasi,
+                  // icon: Icon(allFinal ? Icons.check_circle : Icons.lock),
+                  // label: Text(
+                  //   allFinal ? 'Sudah Difinalisasi' : 'Finalisasi Nilai',
+                  //   style: const TextStyle(fontSize: 16),
+                  // ),
+                  // style: ElevatedButton.styleFrom(
+                  //   padding: const EdgeInsets.symmetric(vertical: 16),
+                  //   backgroundColor: allFinal ? Colors.grey : Colors.green,
+                  // ),
+                  // ),
                 );
               },
             ),

@@ -1,348 +1,417 @@
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/providers/guru_provider.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/constants/color_constants.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/nilai_provider.dart';
+import '../../../../data/models/nilai_model.dart';
 import '../../../../data/models/siswa_model.dart';
 
-class NilaiInputScreen extends StatefulWidget {
-  final String guruId;
-  final String kelas;
-  final String mataPelajaran;
-  final List<SiswaModel> siswa;
+class GuruNilaiInputScreen extends StatefulWidget {
+  final String kelasId;
+  final String mapelId;
+  final String mapelNama;
+  final String tahunId;
 
-  const NilaiInputScreen({
+  const GuruNilaiInputScreen({
     super.key,
-    required this.guruId,
-    required this.kelas,
-    required this.mataPelajaran,
-    required this.siswa,
+    required this.kelasId,
+    required this.mapelId,
+    required this.mapelNama,
+    required this.tahunId,
   });
 
   @override
-  State<NilaiInputScreen> createState() => _NilaiInputScreenState();
+  State<GuruNilaiInputScreen> createState() => _GuruNilaiInputScreenState();
 }
 
-class _NilaiInputScreenState extends State<NilaiInputScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final Map<String, Map<String, TextEditingController>> _controllers = {};
-  final Map<String, Map<String, dynamic>> _nilaiData = {};
-
+class _GuruNilaiInputScreenState extends State<GuruNilaiInputScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeControllers();
-  }
-
-  void _initializeControllers() {
-    for (var siswa in widget.siswa) {
-      _controllers[siswa.id] = {
-        'tugas_1': TextEditingController(),
-        'tugas_2': TextEditingController(),
-        'tugas_3': TextEditingController(),
-        'tugas_4': TextEditingController(),
-        'uh_1': TextEditingController(),
-        'uh_2': TextEditingController(),
-        'uts': TextEditingController(),
-        'uas': TextEditingController(),
-      };
-
-      _nilaiData[siswa.id] = {
-        'tugas_1': 0,
-        'tugas_2': 0,
-        'tugas_3': 0,
-        'tugas_4': 0,
-        'uh_1': 0,
-        'uh_2': 0,
-        'uts': 0,
-        'uas': 0,
-        'nilai_akhir': 0,
-        'status': 'draft',
-      };
-    }
-  }
-
-  double _calculateNilaiAkhir(Map<String, dynamic> nilai) {
-    // Rumus: (Rata Tugas 20% + Rata UH 20% + UTS 30% + UAS 30%)
-    final rataTugas = (nilai['tugas_1'] + nilai['tugas_2'] + nilai['tugas_3'] + nilai['tugas_4']) / 4;
-    final rataUH = (nilai['uh_1'] + nilai['uh_2']) / 2;
-    final uts = nilai['uts'];
-    final uas = nilai['uas'];
-
-    return (rataTugas * 0.2) + (rataUH * 0.2) + (uts * 0.3) + (uas * 0.3);
-  }
-
-  void _updateNilai(String siswaId, String key, String value) {
-    final numValue = double.tryParse(value) ?? 0;
-    _nilaiData[siswaId]![key] = numValue;
-    _nilaiData[siswaId]!['nilai_akhir'] = _calculateNilaiAkhir(_nilaiData[siswaId]!);
-    setState(() {});
-  }
-
-  Future<void> _saveNilai() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final nilaiProvider = Provider.of<NilaiProvider>(context, listen: false);
-
-    // Get IDs (dalam real app, ambil dari database berdasarkan nama)
-    final kelasId = widget.kelas; // Temporary - should get from DB
-    final mataPelajaranId = widget.mataPelajaran; // Temporary - should get from DB
-
-    final success = await nilaiProvider.saveNilai(
-      kelasId: kelasId,
-      mataPelajaranId: mataPelajaranId,
-      guruId: widget.guruId,
-      nilaiData: _nilaiData,
+    Future.microtask(
+      () => context.read<NilaiProvider>().fetchInputList(
+        kelasId: widget.kelasId,
+        mapelId: widget.mapelId,
+        tahunId: widget.tahunId,
+      ),
     );
-
-    if (!mounted) return;
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Nilai berhasil disimpan'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ ${nilaiProvider.errorMessage}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
-  @override
-  void dispose() {
-    for (var siswaControllers in _controllers.values) {
-      for (var controller in siswaControllers.values) {
-        controller.dispose();
-      }
-    }
-    super.dispose();
+  // Menampilkan Form Input
+  void _showInputForm(
+    BuildContext context,
+    SiswaModel siswa,
+    NilaiModel? existingNilai,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(
+            ctx,
+          ).viewInsets.bottom, // Agar tidak tertutup keyboard
+          left: 16,
+          right: 16,
+          top: 16,
+        ),
+        child: _FormNilaiWidget(
+          siswa: siswa,
+          nilaiAwal: existingNilai,
+          kelasId: widget.kelasId,
+          mapelId: widget.mapelId,
+          tahunId: widget.tahunId,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Input Nilai'),
-        elevation: 0,
+        title: Text('Input Nilai: ${widget.mapelNama}'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
-      body: Column(
-        children: [
-          // Header Info
-          Container(
+      body: Consumer<NilaiProvider>(
+        builder: (context, provider, _) {
+          if (provider.isLoading)
+            return const Center(child: CircularProgressIndicator());
+
+          if (provider.inputList.isEmpty) {
+            return const Center(child: Text('Tidak ada siswa di kelas ini'));
+          }
+
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.class_, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Kelas ${widget.kelas}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+            itemCount: provider.inputList.length,
+            itemBuilder: (context, index) {
+              final item = provider.inputList[index];
+              final sudahDinilai = item.nilai != null;
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(12),
+                  leading: CircleAvatar(
+                    backgroundColor: sudahDinilai
+                        ? Colors.green.shade100
+                        : Colors.grey.shade200,
+                    child: Icon(
+                      sudahDinilai ? Icons.check : Icons.edit,
+                      color: sudahDinilai ? Colors.green : Colors.grey,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.book, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      widget.mataPelajaran,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Table Headers
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.grey[200],
-            child: Row(
-              children: [
-                const SizedBox(width: 150, child: Text('Nama Siswa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                const SizedBox(width: 60, child: Text('T1', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                const SizedBox(width: 60, child: Text('T2', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                const SizedBox(width: 60, child: Text('T3', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                const SizedBox(width: 60, child: Text('T4', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                const SizedBox(width: 60, child: Text('UH1', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                const SizedBox(width: 60, child: Text('UH2', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                const SizedBox(width: 60, child: Text('UTS', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                const SizedBox(width: 60, child: Text('UAS', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                const SizedBox(width: 70, child: Text('NA', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-              ],
-            ),
-          ),
-
-          // Scrollable Table Content
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: ListView.builder(
-                itemCount: widget.siswa.length,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemBuilder: (context, index) {
-                  final siswa = widget.siswa[index];
-                  final controllers = _controllers[siswa.id]!;
-                  final nilaiAkhir = _nilaiData[siswa.id]!['nilai_akhir'];
-
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey[300]!),
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Nama Siswa
-                        SizedBox(
-                          width: 150,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                siswa.nama,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                siswa.nis,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Input Fields
-                        _buildNilaiField(siswa.id, 'tugas_1', controllers['tugas_1']!),
-                        _buildNilaiField(siswa.id, 'tugas_2', controllers['tugas_2']!),
-                        _buildNilaiField(siswa.id, 'tugas_3', controllers['tugas_3']!),
-                        _buildNilaiField(siswa.id, 'tugas_4', controllers['tugas_4']!),
-                        _buildNilaiField(siswa.id, 'uh_1', controllers['uh_1']!),
-                        _buildNilaiField(siswa.id, 'uh_2', controllers['uh_2']!),
-                        _buildNilaiField(siswa.id, 'uts', controllers['uts']!),
-                        _buildNilaiField(siswa.id, 'uas', controllers['uas']!),
-
-                        // Nilai Akhir (Auto-calculated)
-                        SizedBox(
-                          width: 70,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              nilaiAkhir.toStringAsFixed(1),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // Bottom Save Button
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Consumer<NilaiProvider>(
-              builder: (context, provider, _) {
-                return SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: provider.isLoading ? null : _saveNilai,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: provider.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text(
-                            'Simpan Nilai',
-                            style: TextStyle(fontSize: 16),
-                          ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                  title: Text(
+                    item.siswa.nama,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    sudahDinilai
+                        ? 'Nilai Akhir: ${item.nilai?.nilaiAkhir ?? 0} | Ketrampilan/Praktik: ${item.nilai?.nilaiPraktik ?? 0}'
+                        : 'Belum ada nilai',
+                    style: TextStyle(color: alreadyColor(sudahDinilai)),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    if (item.nilai?.isFinalized == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Nilai sudah difinalisasi, tidak bisa diedit.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    _showInputForm(context, item.siswa, item.nilai);
+                  },
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 
-  Widget _buildNilaiField(String siswaId, String key, TextEditingController controller) {
-    return SizedBox(
-      width: 60,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: TextFormField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 12),
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
+  Color alreadyColor(bool val) =>
+      val ? Colors.green.shade700 : Colors.red.shade400;
+}
+
+// ==========================================
+// 📝 WIDGET FORM INPUT (MODAL)
+// ==========================================
+class _FormNilaiWidget extends StatefulWidget {
+  final SiswaModel siswa;
+  final NilaiModel? nilaiAwal;
+  final String kelasId;
+  final String mapelId;
+  final String tahunId;
+
+  const _FormNilaiWidget({
+    required this.siswa,
+    this.nilaiAwal,
+    required this.kelasId,
+    required this.mapelId,
+    required this.tahunId,
+  });
+
+  @override
+  State<_FormNilaiWidget> createState() => _FormNilaiWidgetState();
+}
+
+class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
+  final _formKey = GlobalKey<FormState>();
+
+  late TextEditingController _tugasCtrl;
+  late TextEditingController _uhCtrl;
+  late TextEditingController _utsCtrl;
+  late TextEditingController _uasCtrl;
+  late TextEditingController _praktikCtrl;
+  String? _selectedSikap;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final n = widget.nilaiAwal;
+    _tugasCtrl = TextEditingController(text: n?.nilaiTugas?.toString() ?? '0');
+    _uhCtrl = TextEditingController(text: n?.nilaiUh?.toString() ?? '0');
+    _utsCtrl = TextEditingController(text: n?.nilaiUts?.toString() ?? '0');
+    _uasCtrl = TextEditingController(text: n?.nilaiUas?.toString() ?? '0');
+    _praktikCtrl = TextEditingController(
+      text: n?.nilaiPraktik?.toString() ?? '0',
+    );
+    _selectedSikap = n?.nilaiSikap ?? 'B';
+  }
+
+  // ==================================================
+  // 🧮 LOGIC MENGHITUNG NILAI AKHIR
+  // ==================================================
+  double _hitungNilaiAkhir() {
+    // 1. Ambil nilai dari controller (default 0 jika kosong)
+    double tugas = double.tryParse(_tugasCtrl.text) ?? 0;
+    double uh = double.tryParse(_uhCtrl.text) ?? 0;
+    double uts = double.tryParse(_utsCtrl.text) ?? 0;
+    double uas = double.tryParse(_uasCtrl.text) ?? 0;
+    double praktik = double.tryParse(_praktikCtrl.text) ?? 0;
+
+    // --- OPSI 1: RATA-RATA SEDERHANA (Semua bobot sama) ---
+    // return (tugas + uh + uts + uas) / 4;
+
+    // --- OPSI 2: PEMBOBOTAN STANDAR (Contoh Umum) ---
+    // Nilai Harian (Rata2 Tugas & UH) = 40%
+    // Nilai UTS = 30%
+    // Nilai UAS = 30%
+
+    double nilaiHarian = (tugas + uh) / 2;
+
+    // Rumus: (Harian * 40%) + (UTS * 30%) + (UAS * 30%)
+    double nilaiAkhir = (nilaiHarian * 0.40) + (uts * 0.30) + (uas * 0.30);
+
+    // Jika Praktik ikut dihitung (Misal bobot 20% dari total, Akademik 80%)
+    // nilaiAkhir = (nilaiAkhir * 0.8) + (praktik * 0.2);
+
+    // Pembulatan 2 angka di belakang koma agar rapi
+    return double.parse(nilaiAkhir.toStringAsFixed(2));
+  }
+
+  // Update fungsi _save untuk menggunakan _hitungNilaiAkhir
+  void _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+
+    final guruProv = context.read<GuruProvider>();
+
+    // Pastikan data guru sudah terload (biasanya sudah di dashboard)
+    if (guruProv.currentGuru == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data Guru tidak ditemukan. Silakan relogin.'),
+        ),
+      );
+      setState(() => _isSaving = false);
+      return;
+    }
+
+    final guruId = guruProv.currentGuru!.id;
+
+    // Buat Objek Nilai Baru
+    final newNilai = NilaiModel(
+      id: widget.nilaiAwal?.id ?? '',
+      siswaId: widget.siswa.id,
+      mataPelajaranId: widget.mapelId,
+      tahunPelajaranId: widget.tahunId,
+      kelasId: widget.kelasId,
+      guruId: guruId,
+
+      nilaiTugas: double.tryParse(_tugasCtrl.text) ?? 0,
+      nilaiUh: double.tryParse(_uhCtrl.text) ?? 0,
+      nilaiUts: double.tryParse(_utsCtrl.text) ?? 0,
+      nilaiUas: double.tryParse(_uasCtrl.text) ?? 0,
+      nilaiPraktik: double.tryParse(_praktikCtrl.text) ?? 0,
+
+      // ✅ HITUNG OTOMATIS DI SINI
+      nilaiAkhir: _hitungNilaiAkhir(),
+
+      nilaiSikap: _selectedSikap,
+      isFinalized: false,
+    );
+
+    final success = await context.read<NilaiProvider>().submitNilai(newNilai);
+
+    if (mounted) {
+      setState(() => _isSaving = false);
+      if (success) {
+        Navigator.pop(context); // Tutup Modal
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Nilai tersimpan!')));
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Gagal menyimpan nilai')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85, // 85% layar
+      padding: const EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.siswa.nama,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
             ),
-            isDense: true,
-          ),
-          onChanged: (value) => _updateNilai(siswaId, key, value),
-          validator: (value) {
-            if (value == null || value.isEmpty) return null;
-            final num = double.tryParse(value);
-            if (num == null || num < 0 || num > 100) {
-              return 'Invalid';
-            }
-            return null;
-          },
+            const Divider(),
+            Expanded(
+              child: ListView(
+                children: [
+                  const Text(
+                    'Nilai Pengetahuan',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: _buildNumField('Tugas', _tugasCtrl)),
+                      const SizedBox(width: 10),
+                      Expanded(child: _buildNumField('UH (Harian)', _uhCtrl)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: _buildNumField('UTS', _utsCtrl)),
+                      const SizedBox(width: 10),
+                      Expanded(child: _buildNumField('UAS', _uasCtrl)),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Nilai Keterampilan & Sikap',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildNumField('Praktik / Keterampilan', _praktikCtrl),
+                  const SizedBox(height: 10),
+
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Nilai Sikap',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _selectedSikap,
+                    items: ['A', 'B', 'C', 'D']
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (val) => setState(() => _selectedSikap = val),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
+                child: _isSaving
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'SIMPAN NILAI',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNumField(String label, TextEditingController ctrl) {
+    double _previewNilaiAkhir = 0; // State untuk tampilan
+
+    return TextFormField(
+      controller: ctrl,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+      onChanged: (val) {
+        setState(() {
+          _previewNilaiAkhir = _hitungNilaiAkhir();
+        });
+      },
+      validator: (val) {
+        if (val == null || val.isEmpty) return 'Wajib';
+        final n = double.tryParse(val);
+        if (n == null) return 'Angka valid';
+        if (n < 0 || n > 100) return '0-100';
+        return null;
+      },
     );
   }
 }

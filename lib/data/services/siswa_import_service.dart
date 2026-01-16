@@ -151,12 +151,12 @@ class SiswaImportService {
             alamat: alamat ?? '',
             namaAyah: namaAyah ?? '',
             namaIbu: namaIbu ?? '',
-            noTelpOrangTua: noHp ?? '',
-            kelas: kelas,
-            tahunMasuk: tahunMasuk,
-            status: status,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
+            // noTelpOrangTua: noHp ?? '',
+            // kelas: kelas,
+            // tahunMasuk: tahunMasuk,
+            // status: status,
+            // createdAt: DateTime.now(),
+            // updatedAt: DateTime.now(),
           );
 
           siswaList.add(siswa);
@@ -215,10 +215,7 @@ class SiswaImportService {
       ];
 
       // ✅ STYLE HEADER (FIXED - tanpa hex color)
-      final headerStyle = CellStyle(
-        bold: true,
-        fontSize: 12,
-      );
+      final headerStyle = CellStyle(bold: true, fontSize: 12);
 
       for (int i = 0; i < headers.length; i++) {
         final cell = sheet.cell(
@@ -280,15 +277,9 @@ class SiswaImportService {
       ];
 
       // ✅ STYLE UNTUK PETUNJUK (FIXED)
-      final titleStyle = CellStyle(
-        bold: true,
-        fontSize: 14,
-      );
+      final titleStyle = CellStyle(bold: true, fontSize: 14);
 
-      final subtitleStyle = CellStyle(
-        bold: true,
-        fontSize: 11,
-      );
+      final subtitleStyle = CellStyle(bold: true, fontSize: 11);
 
       for (int i = 0; i < instructions.length; i++) {
         final cell = instructionSheet.cell(

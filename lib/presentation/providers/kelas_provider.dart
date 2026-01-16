@@ -17,6 +17,61 @@ class KelasProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  List<KelasModel> _kelasMengajarList = []; // List kelas yg diajar guru
+  List<KelasModel> get kelasMengajarList => _kelasMengajarList;
+
+  KelasModel? _myKelas;
+  KelasModel? get myKelas => _myKelas;
+
+  /// Ambil Kelas milik Guru yang sedang login (Wali Kelas)
+  Future<void> fetchMyKelas(String profileId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final data = await _supabaseService.getKelasByWaliProfileId(profileId);
+
+      if (data != null) {
+        _myKelas = KelasModel.fromJson(data);
+      } else {
+        _myKelas = null; // Guru ini bukan wali kelas manapun
+      }
+    } catch (e) {
+      print('Error fetchMyKelas: $e');
+      _errorMessage = e.toString();
+      _myKelas = null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchKelasMengajar(String guruId, String tahunId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final data = await _supabaseService.getKelasMengajarGuru(guruId, tahunId);
+      _kelasMengajarList = data
+          .map(
+            (json) => KelasModel(
+              id: json['id'],
+              namaKelas: json['nama_kelas'],
+              // tingkat: '', // Optional jika tidak diambil
+              waliKelasId: '', // Optional
+            ),
+          )
+          .toList();
+
+      // Sort by nama kelas
+      _kelasMengajarList.sort((a, b) => a.namaKelas.compareTo(b.namaKelas));
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // 1. Fetch Data
   Future<void> fetchAllKelas() async {
     _isLoading = true;

@@ -13,6 +13,9 @@ class JadwalProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  List<JadwalModel> _jadwalGuru = []; // List khusus jadwal guru login
+  List<JadwalModel> get jadwalGuru => _jadwalGuru;
+
   // READ
   Future<void> fetchJadwal({
     required String tahunPelajaranId,
@@ -93,6 +96,50 @@ class JadwalProvider with ChangeNotifier {
       _errorMessage = 'Gagal menghapus jadwal';
       notifyListeners();
       return false;
+    }
+  }
+
+  // ✅ METHOD BARU: Fetch Jadwal Guru
+  Future<void> fetchJadwalGuru({
+    required String guruId,
+    required String tahunPelajaranId,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final data = await _supabaseService.fetchJadwalByGuru(
+        guruId: guruId,
+        tahunPelajaranId: tahunPelajaranId,
+      );
+
+      _jadwalGuru = data.map((e) => JadwalModel.fromJson(e)).toList();
+
+      // Custom Sort Hari (Agar Senin muncul sebelum Selasa, bukan Alphabetical)
+      final hariOrder = {
+        'Senin': 1,
+        'Selasa': 2,
+        'Rabu': 3,
+        'Kamis': 4,
+        'Jumat': 5,
+        'Sabtu': 6,
+        'Minggu': 7,
+      };
+
+      _jadwalGuru.sort((a, b) {
+        int orderA = hariOrder[a.hari] ?? 99;
+        int orderB = hariOrder[b.hari] ?? 99;
+        // Jika hari sama, urutkan jam
+        if (orderA == orderB) {
+          return a.jamMulai.compareTo(b.jamMulai);
+        }
+        return orderA.compareTo(orderB);
+      });
+    } catch (e) {
+      _errorMessage = 'Gagal memuat jadwal guru: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

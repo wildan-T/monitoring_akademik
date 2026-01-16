@@ -1,399 +1,97 @@
-//C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\nilai_provider.dart
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/nilai_model.dart';
+import '../../data/models/siswa_model.dart'; // Pastikan ada
 import '../../data/services/supabase_service.dart';
 
-class NilaiProvider with ChangeNotifier {
-  final SupabaseService _supabaseService;
+class NilaiInputItem {
+  final SiswaModel siswa;
+  final NilaiModel? nilai; // Null jika belum dinilai
 
-  List<NilaiModel> _nilaiList = [];
-  List<Map<String, dynamic>> _kelasMapelList = [];
+  NilaiInputItem({required this.siswa, this.nilai});
+}
+
+class NilaiProvider extends ChangeNotifier {
+  final SupabaseService _service = SupabaseService();
+
+  List<NilaiInputItem> _inputList = [];
   bool _isLoading = false;
-  String _errorMessage = '';
+  String? _errorMessage;
 
-  NilaiProvider(this._supabaseService);
-
-  // Getters
-  List<NilaiModel> get nilaiList => _nilaiList;
-  List<Map<String, dynamic>> get kelasMapelList => _kelasMapelList;
+  List<NilaiInputItem> get inputList => _inputList;
   bool get isLoading => _isLoading;
-  String get errorMessage => _errorMessage;
+  String? get errorMessage => _errorMessage;
 
-  // ✅ ADDED: Statistik Helper (Synchronous calculation from cached list)
-  Map<String, dynamic> getStatistik({
-    required String kelas,
-    required String mataPelajaran,
-  }) {
-    // Filter nilaiList yang ada di memori
-    // Catatan: Ini mengasumsikan fetchNilaiByKelasAndMapel sudah dipanggil sebelumnya,
-    // atau untuk NilaiKelasListScreen, idealnya kita fetch summary dari DB.
-    // Untuk menghindari error kompilasi, kita return default jika list kosong/tidak cocok.
-
-    final relevantNilai =
-        _nilaiList
-            .where((n) => n.kelas == kelas && n.mataPelajaran == mataPelajaran)
-            .toList();
-
-    if (relevantNilai.isEmpty) {
-      return {
-        'total_siswa': 0,
-        'sudah_dinilai': 0,
-        'belum_dinilai': 0,
-        'rata_rata': 0.0,
-      };
-    }
-
-    final sudahDinilai =
-        relevantNilai.where((n) => n.nilaiAkhir != null).length;
-    final totalNilai = relevantNilai.fold(
-      0.0,
-      (sum, n) => sum + (n.nilaiAkhir ?? 0),
-    );
-
-    return {
-      'total_siswa': relevantNilai.length,
-      'sudah_dinilai': sudahDinilai,
-      'belum_dinilai': relevantNilai.length - sudahDinilai,
-      'rata_rata': sudahDinilai > 0 ? totalNilai / sudahDinilai : 0.0,
-    };
-  }
-
-  // ========== GET KELAS-MAPEL BY GURU ID ==========
-  Future<List<Map<String, dynamic>>> getKelasMapelByGuruId(
-    String guruId,
-  ) async {
-    try {
-      final response = await _supabaseService.supabase
-          .from('guru_kelas_mapel')
-          .select('''
-            *,
-            kelas:kelas_id(id, nama_kelas, tingkat),
-            mata_pelajaran:mata_pelajaran_id(id, nama_mata_pelajaran, kode)
-          ''')
-          .eq('guru_id', guruId);
-
-      _kelasMapelList = List<Map<String, dynamic>>.from(response as List);
-
-      if (kDebugMode) {
-        print('✅ Fetched ${_kelasMapelList.length} kelas-mapel for guru');
-      }
-
-      notifyListeners();
-      return _kelasMapelList;
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error fetching kelas-mapel: $e');
-      }
-      return [];
-    }
-  }
-
-  // ========== FETCH NILAI BY KELAS ==========
-  Future<void> fetchNilaiByKelas(String kelasId) async {
-    _isLoading = true;
-    _errorMessage = '';
-    notifyListeners();
-
-    try {
-      final response = await _supabaseService.supabase
-          .from('nilai')
-          .select('''
-            *,
-            siswa:siswa_id(id, nama, nis, nisn),
-            kelas:kelas_id(id, nama_kelas, tingkat),
-            mata_pelajaran:mata_pelajaran_id(id, nama_mata_pelajaran, kode),
-            guru:guru_id(id, nama)
-          ''')
-          .eq('kelas_id', kelasId)
-          .order('created_at', ascending: false);
-
-      _nilaiList =
-          (response as List).map((json) => NilaiModel.fromJson(json)).toList();
-
-      if (kDebugMode) {
-        print('✅ Fetched ${_nilaiList.length} nilai for kelas');
-      }
-
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error fetching nilai: $e');
-      }
-      _errorMessage = 'Gagal memuat data nilai: $e';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // ========== FETCH NILAI BY KELAS & MAPEL ==========
-  Future<void> fetchNilaiByKelasAndMapel({
+  // Fetch Gabungan Siswa & Nilai
+  Future<void> fetchInputList({
     required String kelasId,
-    required String mataPelajaranId,
+    required String mapelId,
+    required String tahunId,
   }) async {
     _isLoading = true;
-    _errorMessage = '';
     notifyListeners();
 
     try {
-      final response = await _supabaseService.supabase
-          .from('nilai')
-          .select('''
-            *,
-            siswa:siswa_id(id, nama, nis, nisn),
-            kelas:kelas_id(id, nama_kelas, tingkat),
-            mata_pelajaran:mata_pelajaran_id(id, nama_mata_pelajaran, kode),
-            guru:guru_id(id, nama)
-          ''')
-          .eq('kelas_id', kelasId)
-          .eq('mata_pelajaran_id', mataPelajaranId)
-          .order('created_at', ascending: false);
+      // 1. Ambil Semua Siswa di Kelas itu
+      // (Gunakan fungsi getSiswaByKelasId yg sudah dibuat sebelumnya)
+      final rawSiswa = await _service.getSiswaByKelasId(kelasId);
+      final listSiswa = rawSiswa.map((e) => SiswaModel.fromJson(e)).toList();
 
-      _nilaiList =
-          (response as List).map((json) => NilaiModel.fromJson(json)).toList();
-
-      if (kDebugMode) {
-        print('✅ Fetched ${_nilaiList.length} nilai for kelas & mapel');
-      }
-
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error fetching nilai: $e');
-      }
-      _errorMessage = 'Gagal memuat data nilai: $e';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // ========== GET ALL NILAI (for admin) ==========
-  Future<void> getAllNilai() async {
-    _isLoading = true;
-    _errorMessage = '';
-    notifyListeners();
-
-    try {
-      final response = await _supabaseService.supabase
-          .from('nilai')
-          .select('''
-            *,
-            siswa:siswa_id(id, nama, nis, nisn),
-            kelas:kelas_id(id, nama_kelas, tingkat),
-            mata_pelajaran:mata_pelajaran_id(id, nama_mata_pelajaran, kode),
-            guru:guru_id(id, nama)
-          ''')
-          .order('created_at', ascending: false);
-
-      _nilaiList =
-          (response as List).map((json) => NilaiModel.fromJson(json)).toList();
-
-      if (kDebugMode) {
-        print('✅ Fetched ${_nilaiList.length} total nilai');
-      }
-
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error fetching all nilai: $e');
-      }
-      _errorMessage = 'Gagal memuat data nilai: $e';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // ========== GET NILAI BY SISWA ==========
-  Future<List<NilaiModel>> getNilai(String siswaId) async {
-    try {
-      final response = await _supabaseService.supabase
-          .from('nilai')
-          .select('''
-            *,
-            kelas:kelas_id(id, nama_kelas),
-            mata_pelajaran:mata_pelajaran_id(id, nama_mata_pelajaran, kode),
-            guru:guru_id(id, nama)
-          ''')
-          .eq('siswa_id', siswaId)
-          .order('created_at', ascending: false);
-
-      return (response as List)
-          .map((json) => NilaiModel.fromJson(json))
-          .toList();
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error fetching nilai for siswa: $e');
-      }
-      return [];
-    }
-  }
-
-  // ========== SAVE NILAI (BATCH) ==========
-  Future<bool> saveNilai({
-    required String kelasId,
-    required String mataPelajaranId,
-    required String guruId,
-    required Map<String, Map<String, dynamic>>
-    nilaiData, // siswaId: {tugas1, tugas2, ...}
-  }) async {
-    _isLoading = true;
-    _errorMessage = '';
-    notifyListeners();
-
-    try {
-      final List<Map<String, dynamic>> nilaiRecords = [];
-
-      for (var entry in nilaiData.entries) {
-        final siswaId = entry.key;
-        final nilai = entry.value;
-
-        nilaiRecords.add({
-          'siswa_id': siswaId,
-          'kelas_id': kelasId,
-          'mata_pelajaran_id': mataPelajaranId,
-          'guru_id': guruId,
-          'tugas_1': nilai['tugas_1'],
-          'tugas_2': nilai['tugas_2'],
-          'tugas_3': nilai['tugas_3'],
-          'tugas_4': nilai['tugas_4'],
-          'uh_1': nilai['uh_1'],
-          'uh_2': nilai['uh_2'],
-          'uts': nilai['uts'],
-          'uas': nilai['uas'],
-          'nilai_akhir': nilai['nilai_akhir'],
-          'status': nilai['status'] ?? 'draft',
-        });
-      }
-
-      await _supabaseService.supabase.from('nilai').insert(nilaiRecords);
-
-      if (kDebugMode) {
-        print('✅ Saved ${nilaiRecords.length} nilai records');
-      }
-
-      await fetchNilaiByKelasAndMapel(
+      // 2. Ambil Data Nilai yang sudah ada di DB
+      final listNilai = await _service.getNilaiByFilter(
         kelasId: kelasId,
-        mataPelajaranId: mataPelajaranId,
+        mapelId: mapelId,
+        tahunId: tahunId,
       );
 
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      // 3. Gabungkan (Merge)
+      _inputList = listSiswa.map((siswa) {
+        // Cari apakah siswa ini sudah punya nilai
+        final nilaiFound = listNilai.firstWhere(
+          (n) => n.siswaId == siswa.id,
+          orElse: () => NilaiModel(
+            id: '', // Dummy ID
+            siswaId: siswa.id,
+            mataPelajaranId: mapelId,
+            tahunPelajaranId: tahunId,
+            kelasId: kelasId,
+            guruId: '', // Akan diisi saat save
+          ),
+        );
+
+        // Jika ID kosong, berarti belum ada di DB -> kirim null atau object kosong
+        return NilaiInputItem(
+          siswa: siswa,
+          nilai: nilaiFound.id.isEmpty ? null : nilaiFound,
+        );
+      }).toList();
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error saving nilai: $e');
-      }
-      _errorMessage = 'Gagal menyimpan nilai: $e';
+      _errorMessage = e.toString();
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 
-  // ========== UPDATE NILAI ==========
-  Future<bool> updateNilai(
-    String nilaiId,
-    Map<String, dynamic> updatedData,
-  ) async {
+  // Simpan Satu Nilai
+  Future<bool> submitNilai(NilaiModel nilai) async {
     try {
-      await _supabaseService.supabase
-          .from('nilai')
-          .update(updatedData)
-          .eq('id', nilaiId);
+      await _service.saveNilai(nilai);
 
-      if (kDebugMode) {
-        print('✅ Nilai updated successfully');
-      }
-
-      // Update local list
-      final index = _nilaiList.indexWhere((n) => n.id == nilaiId);
+      // Update state lokal agar UI langsung berubah tanpa refresh
+      final index = _inputList.indexWhere(
+        (item) => item.siswa.id == nilai.siswaId,
+      );
       if (index != -1) {
-        // Refresh from server to get latest data
-        final response =
-            await _supabaseService.supabase
-                .from('nilai')
-                .select('''
-              *,
-              siswa:siswa_id(id, nama, nis, nisn),
-              kelas:kelas_id(id, nama_kelas, tingkat),
-              mata_pelajaran:mata_pelajaran_id(id, nama_mata_pelajaran, kode),
-              guru:guru_id(id, nama)
-            ''')
-                .eq('id', nilaiId)
-                .single();
-
-        _nilaiList[index] = NilaiModel.fromJson(response);
+        _inputList[index] = NilaiInputItem(
+          siswa: _inputList[index].siswa,
+          nilai: nilai, // Nilai terbaru
+        );
         notifyListeners();
       }
-
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error updating nilai: $e');
-      }
       _errorMessage = e.toString();
-      return false;
-    }
-  }
-
-  // ========== FINALISASI NILAI ==========
-  Future<bool> finalisasiNilai({
-    required String kelasId,
-    required String mataPelajaranId,
-  }) async {
-    _isLoading = true;
-    _errorMessage = '';
-    notifyListeners();
-
-    try {
-      await _supabaseService.supabase
-          .from('nilai')
-          .update({'status': 'final'})
-          .eq('kelas_id', kelasId)
-          .eq('mata_pelajaran_id', mataPelajaranId);
-
-      if (kDebugMode) {
-        print('✅ Nilai finalized successfully');
-      }
-
-      await fetchNilaiByKelasAndMapel(
-        kelasId: kelasId,
-        mataPelajaranId: mataPelajaranId,
-      );
-
-      _isLoading = false;
       notifyListeners();
-      return true;
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error finalizing nilai: $e');
-      }
-      _errorMessage = 'Gagal finalisasi nilai: $e';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // ========== DELETE NILAI ==========
-  Future<bool> deleteNilai(String nilaiId) async {
-    try {
-      await _supabaseService.supabase.from('nilai').delete().eq('id', nilaiId);
-
-      if (kDebugMode) {
-        print('✅ Nilai deleted successfully');
-      }
-
-      _nilaiList.removeWhere((n) => n.id == nilaiId);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error deleting nilai: $e');
-      }
       return false;
     }
   }

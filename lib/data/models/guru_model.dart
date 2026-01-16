@@ -29,9 +29,11 @@ class GuruModel extends GuruEntity {
     Map<String, dynamic> json, {
     Map<String, dynamic>? kelasData,
   }) {
-    // ✅ Extract profiles data (relasi jika ada)
-    final profiles = json['profiles'] as Map<String, dynamic>?;
+    // Pastikan ini bisa menangkap objek 'profiles' dari query select('*, profiles(...)')
+    final profiles = json['profiles'] is Map ? json['profiles'] : null;
 
+    // print('JSON GURU: $json');
+    // print('PROFILES: ${json['profiles']}');
     return GuruModel(
       id: json['id']?.toString() ?? '',
       nuptk: json['nuptk']?.toString() ?? '-',

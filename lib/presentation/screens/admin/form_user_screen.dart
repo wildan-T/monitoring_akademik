@@ -1,104 +1,126 @@
-//=== FILE 6: form_user_screen.dart ===
-//C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\admin\form_user_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../../data/services/supabase_service.dart';
 
-class FormUserScreen extends StatefulWidget {
-  final String? userId; // null = tambah, ada value = edit
-  
-  const FormUserScreen({Key? key, this.userId}) : super(key: key);
+class UserEditScreen extends StatefulWidget {
+  final Map<String, dynamic> userProfile;
+
+  const UserEditScreen({super.key, required this.userProfile});
 
   @override
-  State<FormUserScreen> createState() => _FormUserScreenState();
+  State<UserEditScreen> createState() => _UserEditScreenState();
 }
 
-class _FormUserScreenState extends State<FormUserScreen> {
+class _UserEditScreenState extends State<UserEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
+
+  // Akun Controller
+  late TextEditingController _emailController;
   final _passwordController = TextEditingController();
-  final _phoneController = TextEditingController();
-  
-  String _selectedRole = AppConstants.roleGuru;
-  bool _isLoading = false;
+  late TextEditingController _phoneController;
+
+  // Wali Murid Controller (Hanya muncul jika role wali)
+  final _namaWaliController = TextEditingController();
+  final _pekerjaanController = TextEditingController();
+  final _alamatController = TextEditingController();
+
+  bool _isLoadingData = false;
+  String get _role => widget.userProfile['role'] ?? '';
 
   @override
   void initState() {
     super.initState();
-    if (widget.userId != null) {
-      _loadUserData();
-    }
-  }
-
-  void _loadUserData() {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final user = userProvider.users.firstWhere(
-      (u) => u.id == widget.userId,
-      orElse: () => throw Exception('User not found'),
+    _emailController = TextEditingController(text: widget.userProfile['email']);
+    _phoneController = TextEditingController(
+      text: widget.userProfile['no_telepon'],
     );
 
-    _usernameController.text = user.username;
-    _nameController.text = user.name;
-    _emailController.text = user.email;
-    _phoneController.text = user.phone ?? '';
-    _selectedRole = user.role;
+    if (_role == 'wali_murid') {
+      _loadWaliDetail();
+    }
   }
 
-  Future<void> _submit() async {
+  // Load Data Spesifik Wali dari tabel wali_murid
+  Future<void> _loadWaliDetail() async {
+    setState(() => _isLoadingData = true);
+    final detail = await SupabaseService().getWaliDetail(
+      widget.userProfile['id'],
+    );
+    if (detail != null) {
+      _namaWaliController.text = detail['nama_lengkap'] ?? '';
+      _pekerjaanController.text = detail['pekerjaan'] ?? '';
+      _alamatController.text = detail['alamat'] ?? '';
+    }
+    setState(() => _isLoadingData = false);
+  }
+
+  void _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    // Siapkan Metadata
+    Map<String, dynamic> metadata = {
+      'no_telepon': _phoneController.text.trim(),
+    };
 
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    bool success;
-    if (widget.userId == null) {
-      // Mode: Tambah user baru
-      success = await userProvider.createUser(
-        username: _usernameController.text.trim(),
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        role: _selectedRole,
-        phone: _phoneController.text.trim().isEmpty 
-            ? null 
-            : _phoneController.text.trim(),
-      );
-    } else {
-      // Mode: Edit user
-      success = await userProvider.updateUser(
-        userId: widget.userId!,
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim().isEmpty 
-            ? null 
-            : _phoneController.text.trim(),
-        role: _selectedRole,
-      );
+    // Jika Wali Murid, masukkan data spesifik ke metadata untuk dihandle Edge Function
+    if (_role == 'wali_murid') {
+      metadata['nama_lengkap'] = _namaWaliController.text.trim();
+      metadata['pekerjaan'] = _pekerjaanController.text.trim();
+      metadata['alamat'] = _alamatController.text.trim();
     }
 
-    setState(() => _isLoading = false);
+    final success = await context.read<UserProvider>().updateUser(
+      widget.userProfile['id'],
+      email: _emailController.text.trim(),
+      pass: _passwordController.text.isNotEmpty
+          ? _passwordController.text.trim()
+          : null,
+      meta: metadata,
+    );
 
-    if (success && mounted) {
-      Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.userId == null 
-              ? '✅ User berhasil ditambahkan' 
-              : '✅ User berhasil diupdate'),
-          backgroundColor: Colors.green,
+    if (mounted) {
+      if (success) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Akun berhasil diupdate')));
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Gagal update akun')));
+      }
+    }
+  }
+
+  void _delete() async {
+    // Dialog Konfirmasi Hapus Total
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Permanen?'),
+        content: const Text(
+          'PERINGATAN: Menghapus akun ini akan menghapus DATA GURU/WALI dan SISWA terkait secara permanen!',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('HAPUS TOTAL'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final success = await context.read<UserProvider>().deleteUser(
+        widget.userProfile['id'],
       );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(userProvider.error ?? '❌ Terjadi kesalahan'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted && success) Navigator.pop(context);
     }
   }
 
@@ -106,233 +128,120 @@ class _FormUserScreenState extends State<FormUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.userId == null ? 'Tambah User' : 'Edit User'),
-        elevation: 0,
+        title: Text('Edit Akun ${_role.toUpperCase()}'),
+        actions: [
+          IconButton(
+            onPressed: _delete,
+            icon: const Icon(Icons.delete_forever, color: Colors.red),
+          ),
+        ],
       ),
-      body: _isLoading
+      body: _isLoadingData
           ? const Center(child: CircularProgressIndicator())
-          : Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // ✅ INFO CARD
-                  if (widget.userId == null)
-                    Card(
-                      color: Colors.blue.shade50,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline, color: Colors.blue.shade700),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'User dengan role Guru akan otomatis dibuatkan profil guru yang dapat dilengkapi nanti.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blue.shade900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Login Info',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
-                  const SizedBox(height: 16),
-
-                  // ✅ Username
-                  TextFormField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Username *',
-                      hintText: 'Contoh: heni.rizki',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person_outline),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email Login',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) => v!.isEmpty ? 'Wajib' : null,
                     ),
-                    enabled: widget.userId == null, // Disable saat edit
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Username wajib diisi';
-                      }
-                      if (value.contains(' ')) {
-                        return 'Username tidak boleh mengandung spasi';
-                      }
-                      if (value.length < 3) {
-                        return 'Username minimal 3 karakter';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ✅ Nama Lengkap
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nama Lengkap *',
-                      hintText: 'Contoh: Heni Rizki Amalia',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.badge_outlined),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Nama wajib diisi';
-                      }
-                      if (value.length < 3) {
-                        return 'Nama minimal 3 karakter';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ✅ Email (WAJIB)
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email *',
-                      hintText: 'Contoh: heni.rizki@smpn20.sch.id',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Email wajib diisi';
-                      }
-                      if (!value.contains('@') || !value.contains('.')) {
-                        return 'Format email tidak valid';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ✅ Password (hanya untuk tambah user)
-                  if (widget.userId == null) ...[
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _passwordController,
                       decoration: const InputDecoration(
-                        labelText: 'Password *',
-                        hintText: 'Minimal 6 karakter',
+                        labelText: 'Password Baru (Opsional)',
                         border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.lock_outline),
+                        helperText:
+                            'Kosongkan jika tidak ingin mengganti password',
                       ),
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Password wajib diisi';
-                        }
-                        if (value.length < 6) {
-                          return 'Password minimal 6 karakter';
-                        }
-                        return null;
-                      },
                     ),
                     const SizedBox(height: 16),
-                  ],
-
-                  // ✅ No Telepon (Optional)
-                  TextFormField(
-                    controller: _phoneController,
-                    decoration: const InputDecoration(
-                      labelText: 'No. Telepon (opsional)',
-                      hintText: 'Contoh: 081234567890',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.phone_outlined),
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'No. Telepon',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        if (value.length < 10) {
-                          return 'No. telepon minimal 10 digit';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
 
-                  // ✅ Role
-                  DropdownButtonFormField<String>(
-                    value: _selectedRole,
-                    decoration: const InputDecoration(
-                      labelText: 'Role *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.verified_user_outlined),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: AppConstants.roleGuru,
-                        child: Row(
-                          children: [
-                            Icon(Icons.school, size: 20),
-                            SizedBox(width: 8),
-                            Text('Guru'),
-                          ],
+                    // FIELD KHUSUS WALI MURID
+                    if (_role == 'wali_murid') ...[
+                      const Divider(height: 40, thickness: 2),
+                      const Text(
+                        'Data Wali Murid',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
                       ),
-                      DropdownMenuItem(
-                        value: AppConstants.roleWali,
-                        child: Row(
-                          children: [
-                            Icon(Icons.family_restroom, size: 20),
-                            SizedBox(width: 8),
-                            Text('Wali Murid'),
-                          ],
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _namaWaliController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Lengkap Wali',
+                          border: OutlineInputBorder(),
                         ),
                       ),
-                      DropdownMenuItem(
-                        value: AppConstants.roleAdmin,
-                        child: Row(
-                          children: [
-                            Icon(Icons.admin_panel_settings, size: 20),
-                            SizedBox(width: 8),
-                            Text('Super Admin'),
-                          ],
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _pekerjaanController,
+                        decoration: const InputDecoration(
+                          labelText: 'Pekerjaan',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _alamatController,
+                        decoration: const InputDecoration(
+                          labelText: 'Alamat',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 2,
+                      ),
+                    ],
+
+                    // FIELD KHUSUS GURU
+                    if (_role == 'guru') ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        color: Colors.blue.shade50,
+                        child: const Text(
+                          'Untuk mengedit data detail Guru (NIP, Pendidikan, dll), silakan gunakan menu "Data Guru". Menu ini hanya untuk Akun Login.',
                         ),
                       ),
                     ],
-                    onChanged: (value) {
-                      setState(() => _selectedRole = value!);
-                    },
-                  ),
-                  const SizedBox(height: 24),
 
-                  // ✅ Submit Button
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _submit,
-                      icon: Icon(_isLoading 
-                          ? Icons.hourglass_empty 
-                          : (widget.userId == null ? Icons.add : Icons.save)),
-                      label: Text(
-                        widget.userId == null ? 'Tambah User' : 'Update User',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _save,
+                        child: const Text('SIMPAN PERUBAHAN'),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
     );
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _phoneController.dispose();
-    super.dispose();
   }
 }

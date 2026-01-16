@@ -16,7 +16,7 @@ class NilaiExportService {
       // Create Excel file
       final excel = Excel.createExcel();
       final sheet = excel['Daftar Nilai'];
-      
+
       // Header styling
       final headerStyle = CellStyle(
         bold: true,
@@ -24,7 +24,7 @@ class NilaiExportService {
         backgroundColorHex: ExcelColor.fromHexString('#2196F3'),
         fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
       );
-      
+
       // ✅ Add Headers
       final headers = [
         'No',
@@ -41,7 +41,7 @@ class NilaiExportService {
         'Grade',
         'Predikat',
       ];
-      
+
       for (var i = 0; i < headers.length; i++) {
         final cell = sheet.cell(
           CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0),
@@ -49,85 +49,88 @@ class NilaiExportService {
         cell.value = TextCellValue(headers[i]);
         cell.cellStyle = headerStyle;
       }
-      
+
       // ✅ Add Data
       for (var i = 0; i < nilaiList.length; i++) {
         final nilai = nilaiList[i];
         final row = i + 1;
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .value = IntCellValue(i + 1);
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .value = TextCellValue(nilai.namaSiswa);
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .value = TextCellValue(nilai.kelas);
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .value = TextCellValue(nilai.mataPelajaran);
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
-          .value = DoubleCellValue(nilai.nilaiTugas ?? 0);
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
-          .value = DoubleCellValue(nilai.nilaiUH ?? 0);
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
-          .value = DoubleCellValue(nilai.nilaiUTS ?? 0);
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row))
-          .value = DoubleCellValue(nilai.nilaiUAS ?? 0);
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: row))
-          .value = nilai.nilaiPraktik != null 
-            ? DoubleCellValue(nilai.nilaiPraktik!) 
-            : TextCellValue('-');
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row))
-          .value = TextCellValue(nilai.nilaiSikap ?? '-');
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: row))
-          .value = nilai.nilaiAkhir != null
-            ? DoubleCellValue(double.parse(nilai.nilaiAkhir!.toStringAsFixed(1)))
-            : TextCellValue('-');
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: row))
-          .value = TextCellValue(nilai.nilaiHuruf ?? '-');
-        
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: row))
-          .value = TextCellValue(nilai.predikat ?? '-');
+
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+            .value = IntCellValue(
+          i + 1,
+        );
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+        //     .value = TextCellValue(nilai.namaSiswa);
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        //     .value = TextCellValue(nilai.kelas);
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+        //     .value = TextCellValue(nilai.mataPelajaran);
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
+        //     .value = DoubleCellValue(nilai.nilaiTugas ?? 0);
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
+        //     .value = DoubleCellValue(nilai.nilaiUH ?? 0);
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
+        //     .value = DoubleCellValue(nilai.nilaiUTS ?? 0);
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row))
+        //     .value = DoubleCellValue(nilai.nilaiUAS ?? 0);
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: row))
+        //     .value = nilai.nilaiPraktik != null
+        //       ? DoubleCellValue(nilai.nilaiPraktik!)
+        //       : TextCellValue('-');
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row))
+        //     .value = TextCellValue(nilai.nilaiSikap ?? '-');
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: row))
+        //     .value = nilai.nilaiAkhir != null
+        //       ? DoubleCellValue(double.parse(nilai.nilaiAkhir!.toStringAsFixed(1)))
+        //       : TextCellValue('-');
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: row))
+        //     .value = TextCellValue(nilai.nilaiHuruf ?? '-');
+
+        //   sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: row))
+        //     .value = TextCellValue(nilai.predikat ?? '-');
       }
-      
+
       // ✅ Auto-fit columns
       for (var i = 0; i < headers.length; i++) {
         sheet.setColumnWidth(i, 15);
       }
-      
+
       // ✅ Save file
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final filePath = '${directory.path}/daftar_nilai_$timestamp.xlsx';
-      
+
       final fileBytes = excel.save();
       final file = File(filePath);
       await file.writeAsBytes(fileBytes!);
-      
+
       // ✅ Open file
       await OpenFile.open(filePath);
-      
+
       print('✅ Excel berhasil disimpan: $filePath');
     } catch (e) {
       print('❌ Error export Excel: $e');
       rethrow;
     }
   }
-  
+
   // ✅ 2. EXPORT TO PDF
   static Future<void> exportToPdf(List<NilaiModel> nilaiList) async {
     try {
       final pdf = pw.Document();
-      
+
       // ✅ Add Page
       pdf.addPage(
         pw.MultiPage(
@@ -161,9 +164,9 @@ class NilaiExportService {
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 16),
-              
+
               // Table
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey400),
@@ -182,9 +185,7 @@ class NilaiExportService {
                 children: [
                   // Header Row
                   pw.TableRow(
-                    decoration: const pw.BoxDecoration(
-                      color: PdfColors.blue,
-                    ),
+                    decoration: const pw.BoxDecoration(color: PdfColors.blue),
                     children: [
                       _buildTableCell('No', isHeader: true),
                       _buildTableCell('Nama Siswa', isHeader: true),
@@ -198,54 +199,48 @@ class NilaiExportService {
                       _buildTableCell('Grade', isHeader: true),
                     ],
                   ),
-                  
+
                   // Data Rows
                   ...nilaiList.asMap().entries.map((entry) {
                     final index = entry.key;
                     final nilai = entry.value;
-                    
+
                     return pw.TableRow(
                       decoration: pw.BoxDecoration(
-                        color: index % 2 == 0 
-                          ? PdfColors.grey100 
-                          : PdfColors.white,
+                        color: index % 2 == 0
+                            ? PdfColors.grey100
+                            : PdfColors.white,
                       ),
                       children: [
                         _buildTableCell('${index + 1}'),
-                        _buildTableCell(nilai.namaSiswa),
-                        _buildTableCell(nilai.kelas),
-                        _buildTableCell(nilai.mataPelajaran),
-                        _buildTableCell(nilai.nilaiTugas?.toStringAsFixed(0) ?? '-'),
-                        _buildTableCell(nilai.nilaiUH?.toStringAsFixed(0) ?? '-'),
-                        _buildTableCell(nilai.nilaiUTS?.toStringAsFixed(0) ?? '-'),
-                        _buildTableCell(nilai.nilaiUAS?.toStringAsFixed(0) ?? '-'),
-                        _buildTableCell(nilai.nilaiAkhir?.toStringAsFixed(1) ?? '-'),
-                        _buildTableCell(nilai.nilaiHuruf ?? '-'),
+                        // _buildTableCell(nilai.namaSiswa),
+                        // _buildTableCell(nilai.kelas),
+                        // _buildTableCell(nilai.mataPelajaran),
+                        // _buildTableCell(nilai.nilaiTugas?.toStringAsFixed(0) ?? '-'),
+                        // _buildTableCell(nilai.nilaiUH?.toStringAsFixed(0) ?? '-'),
+                        // _buildTableCell(nilai.nilaiUTS?.toStringAsFixed(0) ?? '-'),
+                        // _buildTableCell(nilai.nilaiUAS?.toStringAsFixed(0) ?? '-'),
+                        // _buildTableCell(nilai.nilaiAkhir?.toStringAsFixed(1) ?? '-'),
+                        // _buildTableCell(nilai.nilaiHuruf ?? '-'),
                       ],
                     );
                   }).toList(),
                 ],
               ),
-              
+
               pw.SizedBox(height: 24),
-              
+
               // Footer
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
                     'Total: ${nilaiList.length} data',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      color: PdfColors.grey700,
-                    ),
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
                   ),
                   pw.Text(
                     'Dicetak: ${DateTime.now().toString().split('.')[0]}',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      color: PdfColors.grey700,
-                    ),
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
                   ),
                 ],
               ),
@@ -253,32 +248,32 @@ class NilaiExportService {
           },
         ),
       );
-      
+
       // ✅ Save PDF
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final filePath = '${directory.path}/daftar_nilai_$timestamp.pdf';
-      
+
       final file = File(filePath);
       await file.writeAsBytes(await pdf.save());
-      
+
       // ✅ Open PDF
       await OpenFile.open(filePath);
-      
+
       print('✅ PDF berhasil disimpan: $filePath');
     } catch (e) {
       print('❌ Error export PDF: $e');
       rethrow;
     }
   }
-  
+
   // ✅ 3. PRINT (Preview & Print)
   static Future<void> printNilai(List<NilaiModel> nilaiList) async {
     try {
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async {
           final pdf = pw.Document();
-          
+
           pdf.addPage(
             pw.MultiPage(
               pageFormat: format.landscape,
@@ -311,9 +306,9 @@ class NilaiExportService {
                       ],
                     ),
                   ),
-                  
+
                   pw.SizedBox(height: 16),
-                  
+
                   // Table (sama dengan PDF export)
                   pw.Table(
                     border: pw.TableBorder.all(color: PdfColors.grey400),
@@ -348,37 +343,37 @@ class NilaiExportService {
                           _buildTableCell('Grade', isHeader: true),
                         ],
                       ),
-                      
+
                       // Data Rows
                       ...nilaiList.asMap().entries.map((entry) {
                         final index = entry.key;
                         final nilai = entry.value;
-                        
+
                         return pw.TableRow(
                           decoration: pw.BoxDecoration(
-                            color: index % 2 == 0 
-                              ? PdfColors.grey100 
-                              : PdfColors.white,
+                            color: index % 2 == 0
+                                ? PdfColors.grey100
+                                : PdfColors.white,
                           ),
                           children: [
                             _buildTableCell('${index + 1}'),
-                            _buildTableCell(nilai.namaSiswa),
-                            _buildTableCell(nilai.kelas),
-                            _buildTableCell(nilai.mataPelajaran),
-                            _buildTableCell(nilai.nilaiTugas?.toStringAsFixed(0) ?? '-'),
-                            _buildTableCell(nilai.nilaiUH?.toStringAsFixed(0) ?? '-'),
-                            _buildTableCell(nilai.nilaiUTS?.toStringAsFixed(0) ?? '-'),
-                            _buildTableCell(nilai.nilaiUAS?.toStringAsFixed(0) ?? '-'),
-                            _buildTableCell(nilai.nilaiAkhir?.toStringAsFixed(1) ?? '-'),
-                            _buildTableCell(nilai.nilaiHuruf ?? '-'),
+                            // _buildTableCell(nilai.namaSiswa),
+                            // _buildTableCell(nilai.kelas),
+                            // _buildTableCell(nilai.mataPelajaran),
+                            // _buildTableCell(nilai.nilaiTugas?.toStringAsFixed(0) ?? '-'),
+                            // _buildTableCell(nilai.nilaiUH?.toStringAsFixed(0) ?? '-'),
+                            // _buildTableCell(nilai.nilaiUTS?.toStringAsFixed(0) ?? '-'),
+                            // _buildTableCell(nilai.nilaiUAS?.toStringAsFixed(0) ?? '-'),
+                            // _buildTableCell(nilai.nilaiAkhir?.toStringAsFixed(1) ?? '-'),
+                            // _buildTableCell(nilai.nilaiHuruf ?? '-'),
                           ],
                         );
                       }).toList(),
                     ],
                   ),
-                  
+
                   pw.SizedBox(height: 24),
-                  
+
                   // Footer
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -403,18 +398,18 @@ class NilaiExportService {
               },
             ),
           );
-          
+
           return pdf.save();
         },
       );
-      
+
       print('✅ Print preview dibuka');
     } catch (e) {
       print('❌ Error print: $e');
       rethrow;
     }
   }
-  
+
   // ✅ Helper: Build Table Cell
   static pw.Widget _buildTableCell(String text, {bool isHeader = false}) {
     return pw.Padding(

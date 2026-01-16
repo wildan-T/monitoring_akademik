@@ -42,10 +42,10 @@ class _AbsensiInputScreenState extends State<AbsensiInputScreen> {
       await siswaProvider.fetchAllSiswa();
 
       setState(() {
-        _siswaList =
-            siswaProvider.siswaList
-                .where((s) => s.kelas == _selectedKelas)
-                .toList();
+        // _siswaList =
+        //     siswaProvider.siswaList
+        //         .where((s) => s.kelas == _selectedKelas)
+        //         .toList();
 
         // Initialize default status (hadir untuk semua siswa)
         for (var siswa in _siswaList) {
@@ -131,262 +131,253 @@ class _AbsensiInputScreenState extends State<AbsensiInputScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Input Absensi'), elevation: 0),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Header Section
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      color: Theme.of(context).primaryColor.withOpacity(0.1),
-                      child: Column(
-                        children: [
-                          // Kelas Dropdown
-                          DropdownButtonFormField<String>(
-                            value: _selectedKelas,
-                            decoration: const InputDecoration(
-                              labelText: 'Kelas',
-                              border: OutlineInputBorder(),
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
-                            items:
-                                ['7A', '7B', '8A', '8B', '9A', '9B']
-                                    .map(
-                                      (kelas) => DropdownMenuItem(
-                                        value: kelas,
-                                        child: Text(kelas),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedKelas = value;
-                                _loadInitialData();
-                              });
-                            },
-                            validator:
-                                (value) => value == null ? 'Pilih kelas' : null,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // Header Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    child: Column(
+                      children: [
+                        // Kelas Dropdown
+                        DropdownButtonFormField<String>(
+                          value: _selectedKelas,
+                          decoration: const InputDecoration(
+                            labelText: 'Kelas',
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Colors.white,
                           ),
-                          const SizedBox(height: 12),
-
-                          // Mata Pelajaran Dropdown
-                          DropdownButtonFormField<String>(
-                            value: _selectedMataPelajaran,
-                            decoration: const InputDecoration(
-                              labelText: 'Mata Pelajaran',
-                              border: OutlineInputBorder(),
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
-                            items:
-                                [
-                                      'Matematika',
-                                      'Bahasa Indonesia',
-                                      'IPA',
-                                      'IPS',
-                                      'Bahasa Inggris',
-                                    ]
-                                    .map(
-                                      (mapel) => DropdownMenuItem(
-                                        value: mapel,
-                                        child: Text(mapel),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged: (value) {
-                              setState(() => _selectedMataPelajaran = value);
-                            },
-                            validator:
-                                (value) =>
-                                    value == null
-                                        ? 'Pilih mata pelajaran'
-                                        : null,
-                          ),
-                          const SizedBox(height: 12),
-
-                          Row(
-                            children: [
-                              // Tanggal
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () => _selectDate(context),
-                                  child: InputDecorator(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Tanggal',
-                                      border: OutlineInputBorder(),
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          DateFormat(
-                                            'dd MMM yyyy',
-                                            'id_ID',
-                                          ).format(_selectedDate),
-                                        ),
-                                        const Icon(Icons.calendar_today),
-                                      ],
-                                    ),
-                                  ),
+                          items: ['7A', '7B', '8A', '8B', '9A', '9B']
+                              .map(
+                                (kelas) => DropdownMenuItem(
+                                  value: kelas,
+                                  child: Text(kelas),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedKelas = value;
+                              _loadInitialData();
+                            });
+                          },
+                          validator: (value) =>
+                              value == null ? 'Pilih kelas' : null,
+                        ),
+                        const SizedBox(height: 12),
 
-                              // Pertemuan
-                              SizedBox(
-                                width: 100,
-                                child: TextFormField(
-                                  initialValue: _pertemuan.toString(),
+                        // Mata Pelajaran Dropdown
+                        DropdownButtonFormField<String>(
+                          value: _selectedMataPelajaran,
+                          decoration: const InputDecoration(
+                            labelText: 'Mata Pelajaran',
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          items:
+                              [
+                                    'Matematika',
+                                    'Bahasa Indonesia',
+                                    'IPA',
+                                    'IPS',
+                                    'Bahasa Inggris',
+                                  ]
+                                  .map(
+                                    (mapel) => DropdownMenuItem(
+                                      value: mapel,
+                                      child: Text(mapel),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (value) {
+                            setState(() => _selectedMataPelajaran = value);
+                          },
+                          validator: (value) =>
+                              value == null ? 'Pilih mata pelajaran' : null,
+                        ),
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            // Tanggal
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => _selectDate(context),
+                                child: InputDecorator(
                                   decoration: const InputDecoration(
-                                    labelText: 'Pertemuan',
+                                    labelText: 'Tanggal',
                                     border: OutlineInputBorder(),
                                     filled: true,
                                     fillColor: Colors.white,
                                   ),
-                                  keyboardType: TextInputType.number,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _pertemuan = int.tryParse(value) ?? 1;
-                                    });
-                                  },
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        DateFormat(
+                                          'dd MMM yyyy',
+                                          'id_ID',
+                                        ).format(_selectedDate),
+                                      ),
+                                      const Icon(Icons.calendar_today),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                            ),
+                            const SizedBox(width: 12),
 
-                    // Daftar Siswa
-                    Expanded(
-                      child:
-                          _siswaList.isEmpty
-                              ? const Center(
-                                child: Text(
-                                  'Pilih kelas untuk menampilkan siswa',
+                            // Pertemuan
+                            SizedBox(
+                              width: 100,
+                              child: TextFormField(
+                                initialValue: _pertemuan.toString(),
+                                decoration: const InputDecoration(
+                                  labelText: 'Pertemuan',
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                  fillColor: Colors.white,
                                 ),
-                              )
-                              : ListView.builder(
-                                itemCount: _siswaList.length,
-                                padding: const EdgeInsets.all(16),
-                                itemBuilder: (context, index) {
-                                  final siswa = _siswaList[index];
-                                  return Card(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                keyboardType: TextInputType.number,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _pertemuan = int.tryParse(value) ?? 1;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Daftar Siswa
+                  Expanded(
+                    child: _siswaList.isEmpty
+                        ? const Center(
+                            child: Text('Pilih kelas untuk menampilkan siswa'),
+                          )
+                        : ListView.builder(
+                            itemCount: _siswaList.length,
+                            padding: const EdgeInsets.all(16),
+                            itemBuilder: (context, index) {
+                              final siswa = _siswaList[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
                                         children: [
-                                          Row(
-                                            children: [
-                                              CircleAvatar(
-                                                child: Text('${index + 1}'),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      siswa.nama,
-                                                      style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      'NIS: ${siswa.nis}',
-                                                      style: TextStyle(
-                                                        color: Colors.grey[600],
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
+                                          CircleAvatar(
+                                            child: Text('${index + 1}'),
                                           ),
-                                          const SizedBox(height: 12),
-                                          Row(
-                                            children: [
-                                              _buildStatusButton(
-                                                siswa.id,
-                                                'hadir',
-                                                'Hadir',
-                                                Colors.green,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              _buildStatusButton(
-                                                siswa.id,
-                                                'izin',
-                                                'Izin',
-                                                Colors.blue,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              _buildStatusButton(
-                                                siswa.id,
-                                                'sakit',
-                                                'Sakit',
-                                                Colors.orange,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              _buildStatusButton(
-                                                siswa.id,
-                                                'alpha',
-                                                'Alpha',
-                                                Colors.red,
-                                              ),
-                                            ],
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  siswa.nama,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'NIS: ${siswa.nis}',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
-                    ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          _buildStatusButton(
+                                            siswa.id,
+                                            'hadir',
+                                            'Hadir',
+                                            Colors.green,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _buildStatusButton(
+                                            siswa.id,
+                                            'izin',
+                                            'Izin',
+                                            Colors.blue,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _buildStatusButton(
+                                            siswa.id,
+                                            'sakit',
+                                            'Sakit',
+                                            Colors.orange,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _buildStatusButton(
+                                            siswa.id,
+                                            'alpha',
+                                            'Alpha',
+                                            Colors.red,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
 
-                    // Bottom Button
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, -2),
-                          ),
-                        ],
-                      ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _saveAbsensi,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text(
-                            'Simpan Absensi',
-                            style: TextStyle(fontSize: 16),
-                          ),
+                  // Bottom Button
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _saveAbsensi,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text(
+                          'Simpan Absensi',
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
     );
   }
 

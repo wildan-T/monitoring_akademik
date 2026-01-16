@@ -1,9 +1,14 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\guru\guru_dashboard_screen.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/screens/guru/absensi/guru_absensi_menu_screen.dart';
+import 'package:monitoring_akademik/presentation/screens/guru/kelas/guru_kelasku_screen.dart';
+import 'package:monitoring_akademik/presentation/screens/guru/nilai/guru_pilih_mapel_screen.dart';
+import 'package:monitoring_akademik/presentation/screens/guru/rekap/guru_rekap_menu_screen.dart';
+import 'package:monitoring_akademik/presentation/screens/guru/siswa/guru_siswa_list_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/guru_provider.dart';
-//import '../../../core/constants/app_constants.dart';
+import '../../../../core/constants/color_constants.dart'; // Pastikan import ini ada
 
 class GuruDashboardScreen extends StatefulWidget {
   const GuruDashboardScreen({Key? key}) : super(key: key);
@@ -28,9 +33,8 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final guruProvider = Provider.of<GuruProvider>(context, listen: false);
 
-    // 1. Pastikan Auth Provider sudah selesai loading status login
+    // 1. Tunggu Auth siap
     if (authProvider.isLoading) {
-      // Tunggu sebentar sampai auth selesai (simple retry mechanism)
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
@@ -39,20 +43,21 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
       return;
     }
 
-    // 2. Ambil data guru
-    // Ini akan mengisi data NIP dan juga Nama jika di Auth Provider masih kosong
+    // 2. Cek Profil Lengkap
+    if (!authProvider.currentUser!.isActive) {
+      setState(() {
+        _needsProfileCompletion = true;
+        _isLoading = false;
+      });
+      if (mounted)
+        Navigator.pushReplacementNamed(context, '/lengkapi-profil-guru');
+      return;
+    }
+
+    // 3. Load Data Detail Guru (Nama Asli ada di sini)
     await guruProvider.fetchGuruByProfileId(authProvider.currentUser!.id);
 
-    // 3. (Opsional) Update nama di AuthProvider jika di GuruProvider lebih lengkap
-    if (guruProvider.currentGuru != null &&
-        guruProvider.currentGuru!.nama.isNotEmpty) {
-      // Update tampilan nama di App Bar agar tidak "Guru"
-      // Anda mungkin perlu buat setter di AuthProvider atau biarkan saja
-    }
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -70,23 +75,29 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
         final currentUser = authProvider.currentUser;
         final currentGuru = guruProvider.currentGuru;
 
+        // ✅ LOGIC PERBAIKAN NAMA:
+        // Prioritaskan nama dari tabel Guru,
+        // Jika belum ada, baru pakai nama dari Auth (Guru)
+        String displayName = 'Guru';
+        if (currentGuru != null &&
+            currentGuru.nama.isNotEmpty &&
+            currentGuru.nama != 'Tanpa Nama') {
+          displayName = currentGuru.nama;
+        } else if (currentUser != null && currentUser.name.isNotEmpty) {
+          displayName = currentUser.name;
+        }
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Dashboard Guru'),
+            backgroundColor: AppColors.primary, // Sesuaikan warna
+            foregroundColor: Colors.white,
             elevation: 0,
-            //   actions: [
-            //     IconButton(
-            //       icon: const Icon(Icons.notifications_outlined),
-            //       onPressed: () {
-            //         // TODO: Notifikasi
-            //       },
-            //     ),
-            //   ],
           ),
           drawer: _buildDrawer(
             context,
             authProvider,
-            currentUser?.name ?? 'Guru',
+            displayName, // ✅ Kirim nama yang sudah diperbaiki
           ),
           body: RefreshIndicator(
             onRefresh: () async {
@@ -98,6 +109,9 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                 // ✅ Welcome Card
                 Card(
                   elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -108,17 +122,19 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                             CircleAvatar(
                               radius: 30,
                               backgroundColor: Colors.blue.shade100,
-                              child: Text(
-                                currentUser?.name
-                                        .substring(0, 1)
-                                        .toUpperCase() ??
-                                    'G',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade700,
-                                ),
-                              ),
+                              backgroundImage: (currentGuru?.fotoProfil != null)
+                                  ? NetworkImage(currentGuru!.fotoProfil!)
+                                  : null,
+                              child: (currentGuru?.fotoProfil == null)
+                                  ? Text(
+                                      displayName.substring(0, 1).toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    )
+                                  : null,
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -133,17 +149,20 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
+                                  // ✅ TAMPILKAN NAMA YANG BENAR DI SINI
                                   Text(
-                                    currentUser?.name ?? 'Guru',
+                                    displayName,
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                     ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   if (currentGuru != null) ...[
                                     const SizedBox(height: 4),
                                     Text(
-                                      'NIP: ${currentGuru.nip ?? '-'}',
+                                      'NIP: ${currentGuru.nip}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade600,
@@ -162,6 +181,7 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                             decoration: BoxDecoration(
                               color: Colors.green.shade50,
                               borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.green.shade200),
                             ),
                             child: Row(
                               children: [
@@ -171,7 +191,7 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Wali Kelas',
+                                  'Wali Kelas ${currentGuru?.waliKelas ?? ""}',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -195,64 +215,82 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
+                  // Angka < 1.0 membuat kartu lebih tinggi (Potrait)
+                  // Angka > 1.0 membuat kartu lebih lebar (Landscape)
+                  childAspectRatio: 0.85,
                   children: [
-                    // -----------------------------------------------------------
-                    // 1. MENU KHUSUS WALI KELAS
-                    // Hanya muncul jika guru tersebut adalah Wali Kelas
-                    // -----------------------------------------------------------
+                    // MENU WALI KELAS
                     if (currentGuru?.isWaliKelas == true) ...[
-                      _buildMenuCard(
-                        icon: Icons.people_outline,
-                        title: 'Kelola Kelasku',
-                        subtitle:
-                            'Siswa kelas ${currentGuru?.waliKelas ?? ""}', // Tampilkan nama kelasnya
-                        color: Colors.blue,
-                        onTap: () {
-                          // Kirim argumen kelas wali agar di screen list siswa hanya meload kelas tersebut
-                          Navigator.pushNamed(
-                            context,
-                            '/guru-siswa-list',
-                            arguments: currentGuru?.waliKelas,
-                          );
-                        },
-                      ),
+                      // _buildMenuCard(
+                      //   icon: Icons.people_outline,
+                      //   title: 'Kelola Kelasku',
+                      //   subtitle: 'Siswa kelas ${currentGuru?.waliKelas ?? ""}',
+                      //   color: Colors.blue,
+                      //   onTap: () {
+                      //     Navigator.pushNamed(
+                      //       context,
+                      //       '/guru-siswa-list',
+                      //       arguments: currentGuru?.waliKelas,
+                      //     );
+                      //   },
+                      // ),
                       _buildMenuCard(
                         icon: Icons.assessment_outlined,
                         title: 'Nilai Kelasku',
-                        subtitle:
-                            'Leger nilai kelas ${currentGuru?.waliKelas ?? ""}',
+                        subtitle: 'Leger nilai kelas',
                         color: Colors.red,
                         onTap: () {
-                          Navigator.pushNamed(context, '/guru-nilai-list');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const GuruKelaskuScreen(),
+                            ),
+                          );
                         },
                       ),
                     ],
-                    // _buildMenuCard(
-                    //   icon: Icons.checklist_outlined,
-                    //   title: 'Absensi',
-                    //   subtitle: 'Input absensi',
-                    //   color: Colors.green,
-                    //   onTap: () {
-                    //     Navigator.pushNamed(context, '/guru-absensi-input');
-                    //   },
-                    // ),
+
+                    // MENU UMUM
+                    _buildMenuCard(
+                      icon: Icons.groups_outlined,
+                      title: 'Data Siswa',
+                      subtitle: 'Lihat siswa yang saya ajar',
+                      color: Colors.indigo,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const GuruSiswaListScreen(),
+                          ),
+                        );
+                      },
+                    ),
                     _buildMenuCard(
                       icon: Icons.grade_outlined,
                       title: 'Input Nilai',
                       subtitle: 'Input nilai siswa',
                       color: Colors.orange,
                       onTap: () {
-                        Navigator.pushNamed(context, '/guru-nilai-input');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const GuruPilihMapelScreen(),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
-                      icon: Icons
-                          .summarize_outlined, // Icon rekap yang lebih cocok
+                      icon: Icons.summarize_outlined,
                       title: 'Rekap Nilai',
                       subtitle: 'Lihat rekap nilai',
                       color: Colors.purple,
                       onTap: () {
-                        Navigator.pushNamed(context, '/guru-nilai-rekap');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const GuruRekapMenuScreen(),
+                          ),
+                        );
                       },
                     ),
                     _buildMenuCard(
@@ -264,6 +302,29 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                         Navigator.pushNamed(context, '/guru-jadwal');
                       },
                     ),
+                    _buildMenuCard(
+                      icon: Icons.fact_check_outlined,
+                      title: 'Input Absensi',
+                      subtitle: 'Absensi harian',
+                      color: Colors.teal,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const GuruAbsensiMenuScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    // _buildMenuCard(
+                    //   icon: Icons.history_edu_outlined,
+                    //   title: 'Rekap Absensi',
+                    //   subtitle: 'Riwayat absensi',
+                    //   color: Colors.teal,
+                    //   onTap: () {
+                    //     Navigator.pushNamed(context, '/guru-absensi-rekap');
+                    //   },
+                    // ),
                   ],
                 ),
               ],
@@ -283,6 +344,7 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
   }) {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -340,7 +402,9 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                   radius: 30,
                   backgroundColor: Colors.white,
                   child: Text(
-                    userName.substring(0, 1).toUpperCase(),
+                    userName.isNotEmpty
+                        ? userName.substring(0, 1).toUpperCase()
+                        : 'G',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -356,6 +420,8 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const Text(
                   'Guru',
@@ -369,17 +435,9 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
             title: const Text('Profil Saya'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Navigate to profile
+              // Tambahkan navigasi ke profil
             },
           ),
-          // ListTile(
-          //   leading: const Icon(Icons.settings_outlined),
-          //   title: const Text('Pengaturan'),
-          //   onTap: () {
-          //     Navigator.pop(context);
-          //     // TODO: Navigate to settings
-          //   },
-          // ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
@@ -406,7 +464,7 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                 ),
               );
 
-              if (confirm == true && mounted) {
+              if (confirm == true && context.mounted) {
                 await authProvider.logout();
                 Navigator.pushReplacementNamed(context, '/login');
               }

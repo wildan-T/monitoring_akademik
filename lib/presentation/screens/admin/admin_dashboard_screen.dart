@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/akademik/jadwal_manager_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/akademik/tahun_pelajaran_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/admin/kelas/kelas_manager_screen.dart';
+import 'package:monitoring_akademik/presentation/screens/admin/nilai/admin_nilai_menu_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/color_constants.dart';
 import '../../../core/constants/route_constants.dart';
@@ -130,6 +131,21 @@ class AdminDashboardScreen extends StatelessWidget {
               // ✅ PERBAIKAN 1: Menambah tinggi kartu agar tidak overflow
               childAspectRatio: 0.9,
               children: [
+                // ✅ MENU KELOLA USER
+                _buildMenuCard(
+                  context,
+                  title: 'Kelola User',
+                  icon: Icons.people,
+                  color: AppColors.error,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UserListScreen(),
+                      ),
+                    );
+                  },
+                ),
                 _buildMenuCard(
                   context,
                   title: 'Kelola Siswa',
@@ -230,7 +246,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const NilaiListScreen(),
+                        builder: (_) => const AdminNilaiMenuScreen(),
                       ),
                     );
                   },

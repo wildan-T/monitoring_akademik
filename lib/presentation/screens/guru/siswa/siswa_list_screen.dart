@@ -41,7 +41,7 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
       _selectedKelas = currentGuru.waliKelas;
       if (_selectedKelas != null) {
         // Gunakan setFilterKelas (bukan fetchSiswaByKelas)
-        siswaProvider.setFilterKelas(_selectedKelas!);
+        // siswaProvider.setFilterKelas(_selectedKelas!);
       }
     }
 
@@ -100,7 +100,7 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
                     if (value != null) {
                       setState(() => _selectedKelas = value);
                       // ✅ FIX: Panggil setFilterKelas (Synchronous void method)
-                      context.read<SiswaProvider>().setFilterKelas(value);
+                      // context.read<SiswaProvider>().setFilterKelas(value);
                     }
                   },
                 );
@@ -216,9 +216,9 @@ class _SiswaListScreenState extends State<SiswaListScreen> {
                           children: [
                             const SizedBox(height: 4),
                             Text('NIS: ${siswa.nis}'),
-                            Text(
-                              'Kelas: ${siswa.kelas}',
-                            ), // Menampilkan nama kelas
+                            // Text(
+                            //   'Kelas: ${siswa.kelas}',
+                            // ), // Menampilkan nama kelas
                           ],
                         ),
                         trailing: const Icon(Icons.chevron_right),

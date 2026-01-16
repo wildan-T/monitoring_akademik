@@ -1,8 +1,11 @@
+// lib/presentation/screens/admin/siswa/siswa_add_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:monitoring_akademik/core/constants/color_constants.dart';
-import 'package:monitoring_akademik/data/models/siswa_model.dart';
-import 'package:monitoring_akademik/presentation/providers/siswa_provider.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/constants/color_constants.dart';
+import '../../../providers/siswa_provider.dart';
+import '../../../providers/kelas_provider.dart'; // Pastikan ada
 
 class SiswaAddScreen extends StatefulWidget {
   const SiswaAddScreen({super.key});
@@ -14,529 +17,291 @@ class SiswaAddScreen extends StatefulWidget {
 class _SiswaAddScreenState extends State<SiswaAddScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers
-  final _nisController = TextEditingController();
+  // -- Data Siswa --
   final _nisnController = TextEditingController();
+  final _nisController = TextEditingController();
   final _namaController = TextEditingController();
   final _tempatLahirController = TextEditingController();
   final _alamatController = TextEditingController();
+  final _agamaController = TextEditingController();
   final _namaAyahController = TextEditingController();
   final _namaIbuController = TextEditingController();
-  final _namaWaliController = TextEditingController();
-  final _noTelpController = TextEditingController();
 
-  // Dropdown values
-  String _jenisKelamin = 'L';
-  String _agama = 'Islam';
-  String _kelas = '7A';
-  String _tahunMasuk = DateTime.now().year.toString();
-  DateTime _tanggalLahir = DateTime(2010, 1, 1);
-  String _jenisKelaminWali = 'L';
-  String _hubungan = 'Ayah';
+  // -- Data Wali (Untuk Akun) --
+  final _namaWaliController = TextEditingController();
+  final _noHpWaliController = TextEditingController();
+  final _emailWaliController = TextEditingController();
+  final _pekerjaanWaliController = TextEditingController();
+
+  String? _selectedKelasId;
+  String? _selectedGender; // Siswa
+  String? _selectedGenderWali;
+  String? _selectedHubungan; // ayah/ibu/wali
+  DateTime? _tanggalLahir;
 
   @override
-  void dispose() {
-    _nisController.dispose();
-    _nisnController.dispose();
-    _namaController.dispose();
-    _tempatLahirController.dispose();
-    _alamatController.dispose();
-    _namaAyahController.dispose();
-    _namaIbuController.dispose();
-    _noTelpController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    Future.microtask(() => context.read<KelasProvider>().fetchAllKelas());
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _tanggalLahir,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null && picked != _tanggalLahir) {
-      setState(() {
-        _tanggalLahir = picked;
-      });
+  void _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedKelasId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Pilih Kelas!')));
+      return;
     }
-  }
 
-  Future<void> _handleSubmit() async {
-    if (_formKey.currentState!.validate()) {
-      final siswaProvider = Provider.of<SiswaProvider>(context, listen: false);
+    // Persiapan Payload ke Edge Function
+    final payload = {
+      // Data Siswa
+      'nisn': _nisnController.text.trim(),
+      'nis': _nisController.text.trim(),
+      'nama_lengkap': _namaController.text.trim(),
+      'jenis_kelamin': _selectedGender,
+      'tempat_lahir': _tempatLahirController.text.trim(),
+      'tanggal_lahir': _tanggalLahir?.toIso8601String(),
+      'agama': _agamaController.text.trim(),
+      'alamat': _alamatController.text.trim(),
+      'nama_ayah': _namaAyahController.text.trim(),
+      'nama_ibu': _namaIbuController.text.trim(),
+      'kelas_id': _selectedKelasId,
 
-      final newSiswa = SiswaModel(
-        id: '', // ID akan di-generate di provider
-        nis: _nisController.text.trim(),
-        nisn: _nisnController.text.trim(),
-        nama: _namaController.text.trim(),
-        jenisKelamin: _jenisKelamin,
-        tempatLahir: _tempatLahirController.text.trim(),
-        tanggalLahir: _tanggalLahir,
-        agama: _agama,
-        alamat: _alamatController.text.trim(),
-        namaAyah: _namaAyahController.text.trim(),
-        namaIbu: _namaIbuController.text.trim(),
-        noTelpOrangTua: _noTelpController.text.trim(),
-        kelas: _kelas,
-        tahunMasuk: _tahunMasuk,
-        status: 'Aktif',
+      // Data Wali (Penting untuk Edge Function index.ts)
+      'nama_wali': _namaWaliController.text.trim(),
+      'jk_wali': _selectedGenderWali,
+      'pekerjaan_wali': _pekerjaanWaliController.text.trim(),
+      'alamat_wali': _alamatController.text.trim(), // Asumsi sama dgn siswa
+      'hubungan_wali': _selectedHubungan,
+      'email': _emailWaliController.text.trim().isNotEmpty
+          ? _emailWaliController.text.trim()
+          : '${_nisnController.text.trim()}@wali.sekolah.id', // Generate Default
+      'no_telepon': _noHpWaliController.text.trim(),
+    };
+
+    final success = await context.read<SiswaProvider>().addSiswa(payload);
+
+    if (success && mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Siswa & Akun Wali Berhasil Dibuat'),
+          backgroundColor: Colors.green,
+        ),
       );
-
-      final success = await siswaProvider.createSiswa(newSiswa);
-
-      if (!mounted) return;
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Siswa berhasil ditambahkan'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              siswaProvider.errorMessage ?? 'Gagal menambahkan siswa',
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.read<SiswaProvider>().errorMessage ?? 'Gagal'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Siswa')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Section: Data Pribadi
-            _buildSectionTitle('Data Pribadi'),
-            const SizedBox(height: 16),
-
-            // NIS
-            TextFormField(
-              controller: _nisController,
-              decoration: const InputDecoration(
-                labelText: 'NIS *',
-                hintText: 'Masukkan NIS',
-                prefixIcon: Icon(Icons.badge),
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'NIS tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // NISN
-            TextFormField(
-              controller: _nisnController,
-              decoration: const InputDecoration(
-                labelText: 'NISN *',
-                hintText: 'Masukkan NISN',
-                prefixIcon: Icon(Icons.credit_card),
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'NISN tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Nama
-            TextFormField(
-              controller: _namaController,
-              decoration: const InputDecoration(
-                labelText: 'Nama Lengkap *',
-                hintText: 'Masukkan nama lengkap',
-                prefixIcon: Icon(Icons.person),
-              ),
-              textCapitalization: TextCapitalization.words,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Nama tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Jenis Kelamin
-            DropdownButtonFormField<String>(
-              value: _jenisKelamin,
-              decoration: const InputDecoration(
-                labelText: 'Jenis Kelamin *',
-                prefixIcon: Icon(Icons.wc),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
-                DropdownMenuItem(value: 'P', child: Text('Perempuan')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _jenisKelamin = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Tempat Lahir
-            TextFormField(
-              controller: _tempatLahirController,
-              decoration: const InputDecoration(
-                labelText: 'Tempat Lahir *',
-                hintText: 'Masukkan tempat lahir',
-                prefixIcon: Icon(Icons.location_city),
-              ),
-              textCapitalization: TextCapitalization.words,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Tempat lahir tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Tanggal Lahir
-            InkWell(
-              onTap: () => _selectDate(context),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Tanggal Lahir *',
-                  prefixIcon: Icon(Icons.calendar_today),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${_tanggalLahir.day.toString().padLeft(2, '0')}-'
-                      '${_tanggalLahir.month.toString().padLeft(2, '0')}-'
-                      '${_tanggalLahir.year}',
-                    ),
-                    const Icon(Icons.arrow_drop_down),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Agama
-            DropdownButtonFormField<String>(
-              value: _agama,
-              decoration: const InputDecoration(
-                labelText: 'Agama *',
-                prefixIcon: Icon(Icons.mosque),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'Islam', child: Text('Islam')),
-                DropdownMenuItem(value: 'Kristen', child: Text('Kristen')),
-                DropdownMenuItem(value: 'Katolik', child: Text('Katolik')),
-                DropdownMenuItem(value: 'Hindu', child: Text('Hindu')),
-                DropdownMenuItem(value: 'Buddha', child: Text('Buddha')),
-                DropdownMenuItem(value: 'Konghucu', child: Text('Konghucu')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _agama = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Alamat
-            TextFormField(
-              controller: _alamatController,
-              decoration: const InputDecoration(
-                labelText: 'Alamat *',
-                hintText: 'Masukkan alamat lengkap',
-                prefixIcon: Icon(Icons.home),
-              ),
-              maxLines: 3,
-              textCapitalization: TextCapitalization.sentences,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Alamat tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Section: Data Orang Tua
-            _buildSectionTitle('Data Orang Tua'),
-            const SizedBox(height: 16),
-
-            // Nama Ayah
-            TextFormField(
-              controller: _namaAyahController,
-              decoration: const InputDecoration(
-                labelText: 'Nama Ayah *',
-                hintText: 'Masukkan nama ayah',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-              textCapitalization: TextCapitalization.words,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Nama ayah tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Nama Ibu
-            TextFormField(
-              controller: _namaIbuController,
-              decoration: const InputDecoration(
-                labelText: 'Nama Ibu *',
-                hintText: 'Masukkan nama ibu',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-              textCapitalization: TextCapitalization.words,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Nama ibu tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // No Telp Orang Tua
-            // TextFormField(
-            //   controller: _noTelpController,
-            //   decoration: const InputDecoration(
-            //     labelText: 'No. Telp Orang Tua *',
-            //     hintText: 'Masukkan nomor telepon',
-            //     prefixIcon: Icon(Icons.phone),
-            //   ),
-            //   keyboardType: TextInputType.phone,
-            //   validator: (value) {
-            //     if (value == null || value.isEmpty) {
-            //       return 'Nomor telepon tidak boleh kosong';
-            //     }
-            //     return null;
-            //   },
-            // ),
-            const SizedBox(height: 24),
-
-            // Section: Data Wali Murid
-            _buildSectionTitle('Data Wali Murid'),
-            const SizedBox(height: 16),
-
-            // Nama
-            TextFormField(
-              controller: _namaWaliController,
-              decoration: const InputDecoration(
-                labelText: 'Nama Lengkap *',
-                hintText: 'Masukkan nama wali',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-              textCapitalization: TextCapitalization.words,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Nama wali tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Jenis Kelamin Wali
-            DropdownButtonFormField<String>(
-              value: _jenisKelaminWali,
-              decoration: const InputDecoration(
-                labelText: 'Jenis Kelamin *',
-                prefixIcon: Icon(Icons.wc),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
-                DropdownMenuItem(value: 'P', child: Text('Perempuan')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _jenisKelaminWali = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Hubungan
-            DropdownButtonFormField<String>(
-              value: _hubungan,
-              decoration: const InputDecoration(
-                labelText: 'Hubungan *',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'Ayah', child: Text('Ayah')),
-                DropdownMenuItem(value: 'Ibu', child: Text('Ibu')),
-                DropdownMenuItem(value: 'Wali', child: Text('Wali')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _hubungan = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Alamat
-            TextFormField(
-              controller: _alamatController,
-              decoration: const InputDecoration(
-                labelText: 'Alamat Wali *',
-                hintText: 'Masukkan alamat lengkap',
-                prefixIcon: Icon(Icons.home),
-              ),
-              maxLines: 3,
-              textCapitalization: TextCapitalization.sentences,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Alamat tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // No Telp Orang Tua
-            TextFormField(
-              controller: _noTelpController,
-              decoration: const InputDecoration(
-                labelText: 'No. Telp *',
-                hintText: 'Masukkan nomor telepon',
-                prefixIcon: Icon(Icons.phone),
-              ),
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Nomor telepon tidak boleh kosong';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Section: Data Akademik
-            _buildSectionTitle('Data Akademik'),
-            const SizedBox(height: 16),
-
-            // Kelas
-            DropdownButtonFormField<String>(
-              value: _kelas,
-              decoration: const InputDecoration(
-                labelText: 'Kelas *',
-                prefixIcon: Icon(Icons.class_),
-              ),
-              items: [
-                for (int i = 7; i <= 9; i++)
-                  for (String huruf in [
-                    'A',
-                    'B',
-                    'C',
-                    'D',
-                    'E',
-                    'F',
-                    'G',
-                    'H',
-                    'I',
-                    'J',
-                  ])
-                    DropdownMenuItem(
-                      value: '$i$huruf',
-                      child: Text('Kelas $i$huruf'),
-                    ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _kelas = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Tahun Masuk
-            DropdownButtonFormField<String>(
-              value: _tahunMasuk,
-              decoration: const InputDecoration(
-                labelText: 'Tahun Masuk *',
-                prefixIcon: Icon(Icons.calendar_month),
-              ),
-              items: List.generate(5, (index) {
-                final year = DateTime.now().year - index;
-                return DropdownMenuItem(
-                  value: year.toString(),
-                  child: Text(year.toString()),
-                );
-              }),
-              onChanged: (value) {
-                setState(() {
-                  _tahunMasuk = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 32),
-
-            // Submit Button
-            Consumer<SiswaProvider>(
-              builder: (context, siswaProvider, child) {
-                return SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: siswaProvider.isLoading ? null : _handleSubmit,
-                    child: siswaProvider.isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.white,
-                              ),
-                            ),
-                          )
-                        : const Text('SIMPAN'),
+      appBar: AppBar(
+        title: const Text('Tambah Siswa & Wali'),
+        backgroundColor: AppColors.primary,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _header('Data Siswa'),
+              Row(
+                children: [
+                  Expanded(
+                    child: _field(_nisnController, 'NISN', true, number: true),
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _field(_nisController, 'NIS', false, number: true),
+                  ),
+                ],
+              ),
+              _field(_namaController, 'Nama Lengkap Siswa', true),
+
+              // Dropdown Kelas
+              Consumer<KelasProvider>(
+                builder: (context, kProv, _) => DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Kelas',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: _selectedKelasId,
+                  items: kProv.kelasList
+                      .map(
+                        (k) => DropdownMenuItem(
+                          value: k.id,
+                          child: Text(k.namaKelas),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) => setState(() => _selectedKelasId = val),
+                  validator: (val) => val == null ? 'Wajib pilih' : null,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _dropdown(
+                      ['L', 'P'],
+                      'Jenis Kelamin',
+                      (v) => _selectedGender = v,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime(2010),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now(),
+                        );
+                        if (d != null) setState(() => _tanggalLahir = d);
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Tgl Lahir',
+                          border: OutlineInputBorder(),
+                        ),
+                        child: Text(
+                          _tanggalLahir == null
+                              ? '-'
+                              : DateFormat('dd/MM/yyyy').format(_tanggalLahir!),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _field(_alamatController, 'Alamat', true, maxLines: 2),
+              _field(_namaAyahController, 'Nama Ayah', false),
+              _field(_namaIbuController, 'Nama Ibu', false),
+
+              const SizedBox(height: 24),
+              _header('Data Wali Murid (Otomatis Buat Akun)'),
+              _field(_namaWaliController, 'Nama Wali', true),
+              Row(
+                children: [
+                  Expanded(
+                    child: _dropdown(
+                      ['L', 'P'],
+                      'Jenis Kelamin',
+                      (v) => _selectedGenderWali = v,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _dropdown(
+                      ['ayah', 'ibu', 'wali'],
+                      'Hubungan',
+                      (v) => _selectedHubungan = v,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _field(_pekerjaanWaliController, 'Pekerjaan', false),
+              _field(_noHpWaliController, 'No HP / WA', true, number: true),
+              _field(
+                _emailWaliController,
+                'Email Wali (Opsional - Default NISN)',
+                false,
+              ),
+
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: Consumer<SiswaProvider>(
+                  builder: (context, prov, _) => ElevatedButton(
+                    onPressed: prov.isLoading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
+                    child: prov.isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'SIMPAN',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.primary, width: 2)),
+  Widget _header(String text) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.blueGrey,
       ),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: AppColors.primary,
+    ),
+  );
+
+  Widget _field(
+    TextEditingController c,
+    String label,
+    bool req, {
+    bool number = false,
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: c,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
         ),
+        keyboardType: number ? TextInputType.number : TextInputType.text,
+        maxLines: maxLines,
+        validator: req
+            ? (v) => v == null || v.isEmpty ? '$label wajib' : null
+            : null,
       ),
+    );
+  }
+
+  Widget _dropdown(
+    List<String> items,
+    String label,
+    Function(String?) onChange,
+  ) {
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      items: items
+          .map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase())))
+          .toList(),
+      onChanged: onChange,
     );
   }
 }

@@ -1,134 +1,101 @@
-//C:\Users\MSITHIN\monitoring_akademik\lib\data\models\siswa_model.dart
-import '../../domain/entities/siswa_entity.dart';
+// lib/data/models/siswa_model.dart
 
-class SiswaModel extends SiswaEntity {
+class SiswaModel {
+  final String id;
+  final String nisn;
+  final String? nis;
+  final String nama;
+  final String? jenisKelamin;
+  final String? kelasId;
+  final String? namaKelas; // Dari tabel kelas
+  final String? waliMuridId; // Ini adalah Profile ID
+  final String? namaWali; // Dari tabel wali_murid
+  final String? noHpWali; // Dari tabel profiles
+  final String? emailWali; // Dari tabel profiles
+  final String? tempatLahir;
+  final DateTime? tanggalLahir;
+  final String? agama;
+  final String? alamat;
+  final String? namaAyah;
+  final String? namaIbu;
+  final String status; // aktif, lulus, dll
+
   SiswaModel({
-    required super.id,
-    required super.nis,
-    required super.nisn,
-    required super.nama,
-    required super.jenisKelamin,
-    required super.tempatLahir,
-    required super.tanggalLahir,
-    required super.agama,
-    required super.alamat,
-    required super.namaAyah,
-    required super.namaIbu,
-    required super.noTelpOrangTua,
-    super.kelasId, // ✅ ADDED - for database FK
-    required super.kelas, // Display name
-    required super.tahunMasuk,
-    required super.status,
-    super.waliMuridId, // ✅ ADDED - for relationship
-    super.createdAt,
-    super.updatedAt,
+    required this.id,
+    required this.nisn,
+    this.nis,
+    required this.nama,
+    this.jenisKelamin,
+    this.kelasId,
+    this.namaKelas,
+    this.waliMuridId,
+    this.namaWali,
+    this.noHpWali,
+    this.emailWali,
+    this.tempatLahir,
+    this.tanggalLahir,
+    this.agama,
+    this.alamat,
+    this.namaAyah,
+    this.namaIbu,
+    this.status = 'aktif',
   });
 
-  // From JSON (untuk parsing dari API/Supabase)
-  factory SiswaModel.fromJson(Map<String, dynamic> json) {
-    // Handle nested kelas object OR flat structure
-    final kelasData = json['kelas'] is Map ? json['kelas'] : null;
-    final waliData = json['wali_murid'] is Map ? json['wali_murid'] : null;
+  factory SiswaModel.fromJson(
+    Map<String, dynamic> json, {
+    Map<String, dynamic>? kelasData,
+    Map<String, dynamic>?
+    waliData, // Data wali dari tabel wali_murid & profiles
+  }) {
+    // 1. Handle Join Kelas (jika dari query langsung) atau Injection
+    final kelasObj = json['kelas'] is Map ? json['kelas'] : null;
+    final finalNamaKelas =
+        kelasData?['nama_kelas'] ?? kelasObj?['nama_kelas'] ?? '-';
 
     return SiswaModel(
       id: json['id']?.toString() ?? '',
-      nis: json['nis']?.toString() ?? '',
       nisn: json['nisn']?.toString() ?? '',
-      nama: json['nama_lengkap']?.toString() ?? '',
-      jenisKelamin: json['jenis_kelamin']?.toString() ?? '',
-      tempatLahir: json['tempat_lahir']?.toString() ?? '',
+      nis: json['nis']?.toString(),
+      nama: json['nama_lengkap'] ?? 'Tanpa Nama',
+      jenisKelamin: json['jenis_kelamin']?.toString(),
+
+      kelasId: json['kelas_id']?.toString(),
+      namaKelas: finalNamaKelas,
+
+      waliMuridId: json['wali_murid_id']?.toString(),
+
+      // Data Wali (Diambil dari Injection waliData)
+      namaWali: waliData?['nama_lengkap'] ?? '-',
+      noHpWali: waliData?['no_telepon'] ?? '-',
+      emailWali: waliData?['email'] ?? '-',
+
+      tempatLahir: json['tempat_lahir']?.toString(),
       tanggalLahir: json['tanggal_lahir'] != null
-          ? DateTime.parse(json['tanggal_lahir'].toString())
-          : DateTime.now(),
-      agama: json['agama']?.toString() ?? '',
-      alamat: json['alamat']?.toString() ?? '',
-      namaAyah: json['nama_ayah']?.toString() ?? '',
-      namaIbu: json['nama_ibu']?.toString() ?? '',
-      noTelpOrangTua: json['no_telp_orang_tua']?.toString() ?? '',
-      kelasId: json['kelas_id']?.toString(), // ✅ ADDED
-      kelas:
-          kelasData?['nama_kelas']?.toString() ??
-          json['kelas']?.toString() ??
-          '',
-      tahunMasuk: json['tahun_masuk']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'Aktif',
-      waliMuridId: json['wali_murid_id']?.toString(), // ✅ ADDED
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'].toString())
+          ? DateTime.tryParse(json['tanggal_lahir'].toString())
           : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'].toString())
-          : null,
+      agama: json['agama']?.toString(),
+      alamat: json['alamat']?.toString(),
+      namaAyah: json['nama_ayah']?.toString(),
+      namaIbu: json['nama_ibu']?.toString(),
+      status: json['status']?.toString() ?? 'aktif',
     );
   }
 
-  // To JSON (untuk kirim ke API/Supabase)
+  // Untuk Update ke DB (Hanya field tabel siswa)
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'nis': nis,
       'nisn': nisn,
+      'nis': nis,
       'nama_lengkap': nama,
       'jenis_kelamin': jenisKelamin,
+      'kelas_id': kelasId,
       'tempat_lahir': tempatLahir,
-      'tanggal_lahir': tanggalLahir.toIso8601String(),
+      'tanggal_lahir': tanggalLahir?.toIso8601String(),
       'agama': agama,
       'alamat': alamat,
       'nama_ayah': namaAyah,
       'nama_ibu': namaIbu,
-      'no_telp_orang_tua': noTelpOrangTua,
-      'kelas_id': kelasId, // ✅ ADDED
-      'kelas': kelas,
-      'tahun_masuk': tahunMasuk,
       'status': status,
-      'wali_murid_id': waliMuridId, // ✅ ADDED
-      'created_at': createdAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
     };
-  }
-
-  // Copy with (untuk update data)
-  SiswaModel copyWith({
-    String? id,
-    String? nis,
-    String? nisn,
-    String? nama,
-    String? jenisKelamin,
-    String? tempatLahir,
-    DateTime? tanggalLahir,
-    String? agama,
-    String? alamat,
-    String? namaAyah,
-    String? namaIbu,
-    String? noTelpOrangTua,
-    String? kelasId,
-    String? kelas,
-    String? tahunMasuk,
-    String? status,
-    String? waliMuridId,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return SiswaModel(
-      id: id ?? this.id,
-      nis: nis ?? this.nis,
-      nisn: nisn ?? this.nisn,
-      nama: nama ?? this.nama,
-      jenisKelamin: jenisKelamin ?? this.jenisKelamin,
-      tempatLahir: tempatLahir ?? this.tempatLahir,
-      tanggalLahir: tanggalLahir ?? this.tanggalLahir,
-      agama: agama ?? this.agama,
-      alamat: alamat ?? this.alamat,
-      namaAyah: namaAyah ?? this.namaAyah,
-      namaIbu: namaIbu ?? this.namaIbu,
-      noTelpOrangTua: noTelpOrangTua ?? this.noTelpOrangTua,
-      kelasId: kelasId ?? this.kelasId,
-      kelas: kelas ?? this.kelas,
-      tahunMasuk: tahunMasuk ?? this.tahunMasuk,
-      status: status ?? this.status,
-      waliMuridId: waliMuridId ?? this.waliMuridId,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
   }
 }

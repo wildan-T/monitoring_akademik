@@ -1,270 +1,151 @@
-//C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\siswa_provider.dart
-import 'package:flutter/foundation.dart';
+// lib/presentation/providers/siswa_provider.dart
+
+import 'package:flutter/material.dart';
 import '../../data/models/siswa_model.dart';
 import '../../data/services/supabase_service.dart';
 
-class SiswaProvider with ChangeNotifier {
-  final SupabaseService _supabaseService;
-
-  SiswaProvider(this._supabaseService);
+class SiswaProvider extends ChangeNotifier {
+  final SupabaseService _service = SupabaseService();
 
   List<SiswaModel> _siswaList = [];
-  List<SiswaModel> _filteredSiswaList = [];
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Filter states
-  String? _filterKelas;
-  String? _filterStatus;
-  String _searchQuery = '';
-
-  // Getters
-  List<SiswaModel> get siswaList =>
-      _filteredSiswaList.isEmpty &&
-          _searchQuery.isEmpty &&
-          _filterKelas == null &&
-          _filterStatus == null
-      ? _siswaList
-      : _filteredSiswaList;
+  List<SiswaModel> get siswaList => _siswaList;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  String? get filterKelas => _filterKelas;
-  String? get filterStatus => _filterStatus;
 
-  // Fetch all siswa with joins
+  // Fetch Data
   Future<void> fetchAllSiswa() async {
     _isLoading = true;
-    _errorMessage = null;
     notifyListeners();
-
     try {
-      final response = await _supabaseService.supabase
-          .from('siswa')
-          .select('''
-            *,
-            kelas:kelas_id(*),
-            wali_murid:wali_murid_id(*)
-          ''')
-          .order('nama', ascending: true);
+      final data = await _service.getAllSiswa();
 
-      _siswaList = (response as List)
-          .map((json) => SiswaModel.fromJson(json))
-          .toList();
-
-      _applyFilters();
+      _siswaList = data.map((e) {
+        // Ambil data wali hasil injeksi manual di Service
+        final waliData = e['wali_data'] as Map<String, dynamic>?;
+        return SiswaModel.fromJson(e, waliData: waliData);
+      }).toList();
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
 
-      if (kDebugMode) {
-        print('✅ Fetched ${_siswaList.length} siswa');
+  /// ✅ Fetch Siswa by Kelas ID (Untuk fitur Guru lihat siswa ajar)
+  Future<void> fetchSiswaByKelas(String kelasId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final data = await _service.getSiswaByKelasId(kelasId);
+
+      if (data.isNotEmpty) {
+        print("📦 DATA MENTAH SISWA PERTAMA:");
+        print(data[0]);
+        // Perhatikan output di console: apakah ada key 'wali_murid' di dalam 'profiles'?
       }
+      _siswaList = data.map((e) {
+        // --- 1. AMBIL NAMA KELAS ---
+        final kelasObj = e['kelas'];
+        final namaKelas = (kelasObj is Map) ? kelasObj['nama_kelas'] : '-';
+
+        // --- 2. AMBIL DATA WALI ---
+        final profileObj = e['profiles'];
+
+        String namaWali = '-';
+        String noHp = '-';
+        String email = '-';
+
+        if (profileObj != null && profileObj is Map) {
+          // Ambil No HP & Email dari Profiles
+          noHp = profileObj['no_telepon'] ?? '-';
+          email = profileObj['email'] ?? '-';
+
+          // Ambil Nama Wali (Reverse Lookup ke tabel wali_murid)
+          // Hasilnya adalah List karena relasi One-to-Many
+          final listWali = profileObj['wali_murid'];
+
+          if (listWali is List && listWali.isNotEmpty) {
+            // Jika List, ambil item pertama
+            namaWali = listWali[0]['nama_lengkap']?.toString() ?? '-';
+          } else if (listWali is Map) {
+            // Jaga-jaga jika Supabase mengembalikan Map (Single)
+            namaWali = listWali['nama_lengkap']?.toString() ?? '-';
+          }
+        }
+
+        // --- 3. BUNGKUS KE DALAM MAP UNTUK MODEL ---
+        // Kita masukkan data yang sudah diekstrak agar Model mudah membacanya
+        final Map<String, dynamic> injectedData = {
+          'nama_kelas': namaKelas,
+          'nama_lengkap': namaWali, // Nama Wali
+          'no_telepon': noHp, // HP Wali
+          'email': email, // Email Wali
+        };
+
+        // Masukkan ke parameter 'waliData' dan 'kelasData'
+        return SiswaModel.fromJson(
+          e,
+          waliData: injectedData,
+          kelasData: injectedData,
+        );
+      }).toList();
     } catch (e) {
+      print('❌ Error fetchSiswaByKelas: $e');
       _errorMessage = e.toString();
+      _siswaList = [];
+    } finally {
       _isLoading = false;
       notifyListeners();
-
-      if (kDebugMode) {
-        print('❌ Error fetching siswa: $e');
-      }
     }
   }
 
-  // Get siswa by ID
-  SiswaModel? getSiswaById(String siswaId) {
+  // Tambah Data
+  Future<bool> addSiswa(Map<String, dynamic> rawData) async {
+    _isLoading = true;
+    notifyListeners();
     try {
-      return _siswaList.firstWhere((s) => s.id == siswaId);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Get siswa by kelas - FIXED
-  List<SiswaModel> getSiswaByKelas(String kelasId) {
-    // ✅ FIXED: Use kelasId instead of kelas?.id
-    final filteredList = _siswaList.where((s) => s.kelasId == kelasId).toList();
-
-    if (kDebugMode) {
-      print('📚 Siswa in kelas $kelasId: ${filteredList.length}');
-    }
-
-    return filteredList;
-  }
-
-  // Get siswa by wali murid
-  Future<List<SiswaModel>> getSiswaByWaliMuridId(String waliMuridId) async {
-    try {
-      final response = await _supabaseService.supabase
-          .from('siswa')
-          .select('''
-            *,
-            kelas:kelas_id(*),
-            wali_murid:wali_murid_id(*)
-          ''')
-          .eq('wali_murid_id', waliMuridId);
-
-      return (response as List)
-          .map((json) => SiswaModel.fromJson(json))
-          .toList();
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error fetching siswa by wali murid: $e');
-      }
-      return [];
-    }
-  }
-
-  // Search and filter methods
-  void setSearchQuery(String query) {
-    _searchQuery = query.toLowerCase();
-    _applyFilters();
-    notifyListeners();
-
-    if (kDebugMode) {
-      print('🔍 Search query: $_searchQuery');
-    }
-  }
-
-  void setFilterKelas(String kelas) {
-    _filterKelas = kelas;
-    _applyFilters();
-    notifyListeners();
-
-    if (kDebugMode) {
-      print('🎯 Filter kelas: $_filterKelas');
-    }
-  }
-
-  void setFilterStatus(String status) {
-    _filterStatus = status;
-    _applyFilters();
-    notifyListeners();
-
-    if (kDebugMode) {
-      print('📊 Filter status: $_filterStatus');
-    }
-  }
-
-  void clearFilters() {
-    _searchQuery = '';
-    _filterKelas = null;
-    _filterStatus = null;
-    _applyFilters();
-    notifyListeners();
-
-    if (kDebugMode) {
-      print('🧹 Filters cleared');
-    }
-  }
-
-  // Apply filters - FIXED
-  void _applyFilters() {
-    _filteredSiswaList = _siswaList.where((siswa) {
-      bool matchesSearch = true;
-      bool matchesKelas = true;
-      bool matchesStatus = true;
-
-      if (_searchQuery.isNotEmpty) {
-        matchesSearch =
-            siswa.nama.toLowerCase().contains(_searchQuery) ||
-            siswa.nisn.toLowerCase().contains(_searchQuery) ||
-            siswa.nis.toLowerCase().contains(_searchQuery);
-      }
-
-      if (_filterKelas != null) {
-        // ✅ FIXED: Use kelas (display name) for comparison
-        matchesKelas = siswa.kelas == _filterKelas;
-      }
-
-      if (_filterStatus != null) {
-        matchesStatus = siswa.status == _filterStatus;
-      }
-
-      return matchesSearch && matchesKelas && matchesStatus;
-    }).toList();
-
-    if (kDebugMode) {
-      print(
-        '📋 Filtered: ${_filteredSiswaList.length} / ${_siswaList.length} siswa',
-      );
-    }
-  }
-
-  // CRUD operations
-  Future<bool> createSiswa(SiswaModel siswa) async {
-    try {
-      await _supabaseService.supabase.from('siswa').insert(siswa.toJson());
-
-      await fetchAllSiswa();
-
-      if (kDebugMode) {
-        print('✅ Siswa created: ${siswa.nama}');
-      }
-
+      await _service.createSiswaAndWali(rawData);
+      await fetchAllSiswa(); // Refresh
       return true;
     } catch (e) {
       _errorMessage = e.toString();
-      notifyListeners();
-
-      if (kDebugMode) {
-        print('❌ Error creating siswa: $e');
-      }
-
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  Future<bool> updateSiswa(String siswaId, SiswaModel siswa) async {
+  // Update Data
+  Future<bool> updateSiswa(String id, SiswaModel siswa) async {
+    _isLoading = true;
+    notifyListeners();
     try {
-      await _supabaseService.supabase
-          .from('siswa')
-          .update(siswa.toJson())
-          .eq('id', siswaId);
-
+      await _service.updateSiswa(id, siswa.toJson());
       await fetchAllSiswa();
-
-      if (kDebugMode) {
-        print('✅ Siswa updated: ${siswa.nama}');
-      }
-
       return true;
     } catch (e) {
       _errorMessage = e.toString();
-      notifyListeners();
-
-      if (kDebugMode) {
-        print('❌ Error updating siswa: $e');
-      }
-
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  Future<bool> deleteSiswa(String siswaId) async {
-    try {
-      await _supabaseService.supabase.from('siswa').delete().eq('id', siswaId);
-
-      await fetchAllSiswa();
-
-      if (kDebugMode) {
-        print('✅ Siswa deleted: $siswaId');
-      }
-
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      notifyListeners();
-
-      if (kDebugMode) {
-        print('❌ Error deleting siswa: $e');
-      }
-
-      return false;
-    }
-  }
-
-  // Helper - Get count by kelas - FIXED
-  int getSiswaCountByKelas(String kelasId) {
-  // ✅ FIXED: Use kelasId instead of kelas?.id
-  return _siswaList.where((s) => s.kelasId == kelasId).length;
+  // Cari Siswa
+  List<SiswaModel> searchSiswa(String query) {
+    if (query.isEmpty) return _siswaList;
+    final lower = query.toLowerCase();
+    return _siswaList
+        .where(
+          (s) => s.nama.toLowerCase().contains(lower) || s.nisn.contains(lower),
+        )
+        .toList();
   }
 }

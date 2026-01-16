@@ -74,14 +74,14 @@ class SiswaDetailScreen extends StatelessWidget {
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
-                      'Kelas ${siswa.kelas}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    // child: Text(
+                    //   'Kelas ${siswa.kelas}',
+                    //   style: const TextStyle(
+                    //     fontSize: 14,
+                    //     color: Colors.white,
+                    //     fontWeight: FontWeight.w600,
+                    //   ),
+                    // ),
                   ),
                 ],
               ),
@@ -95,43 +95,43 @@ class SiswaDetailScreen extends StatelessWidget {
                 children: [
                   _buildSectionTitle('Informasi Pribadi'),
                   const SizedBox(height: 12),
-                  _buildInfoCard([
-                    _buildInfoRow('NIS', siswa.nis),
-                    _buildInfoRow('NISN', siswa.nisn),
-                    _buildInfoRow('Nama Lengkap', siswa.nama),
-                    _buildInfoRow('Jenis Kelamin', siswa.jenisKelamin),
-                    _buildInfoRow('Tempat Lahir', siswa.tempatLahir),
-                    _buildInfoRow(
-                      'Tanggal Lahir',
-                      DateFormat(
-                        'dd MMMM yyyy',
-                        'id_ID',
-                      ).format(siswa.tanggalLahir),
-                    ),
-                    _buildInfoRow('Agama', siswa.agama),
-                    _buildInfoRow('Alamat', siswa.alamat),
-                  ]),
 
-                  const SizedBox(height: 24),
+                  // _buildInfoCard([
+                  //   _buildInfoRow('NIS', siswa.nis),
+                  //   _buildInfoRow('NISN', siswa.nisn),
+                  //   _buildInfoRow('Nama Lengkap', siswa.nama),
+                  //   _buildInfoRow('Jenis Kelamin', siswa.jenisKelamin),
+                  //   _buildInfoRow('Tempat Lahir', siswa.tempatLahir),
+                  //   _buildInfoRow(
+                  //     'Tanggal Lahir',
+                  //     DateFormat(
+                  //       'dd MMMM yyyy',
+                  //       'id_ID',
+                  //     ).format(siswa.tanggalLahir),
+                  //   ),
+                  //   _buildInfoRow('Agama', siswa.agama),
+                  //   _buildInfoRow('Alamat', siswa.alamat),
+                  // ]),
 
-                  _buildSectionTitle('Informasi Akademik'),
-                  const SizedBox(height: 12),
-                  _buildInfoCard([
-                    _buildInfoRow('Kelas', siswa.kelas),
-                    _buildInfoRow('Tahun Masuk', siswa.tahunMasuk),
-                    _buildInfoRow('Status', siswa.status),
-                  ]),
+                  // const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
+                  // _buildSectionTitle('Informasi Akademik'),
+                  // const SizedBox(height: 12),
+                  // _buildInfoCard([
+                  //   _buildInfoRow('Kelas', siswa.kelas),
+                  //   _buildInfoRow('Tahun Masuk', siswa.tahunMasuk),
+                  //   _buildInfoRow('Status', siswa.status),
+                  // ]),
 
-                  _buildSectionTitle('Informasi Orang Tua'),
-                  const SizedBox(height: 12),
-                  _buildInfoCard([
-                    _buildInfoRow('Nama Ayah', siswa.namaAyah),
-                    _buildInfoRow('Nama Ibu', siswa.namaIbu),
-                    _buildInfoRow('No. Telepon', siswa.noTelpOrangTua),
-                  ]),
+                  // const SizedBox(height: 24),
 
+                  // _buildSectionTitle('Informasi Orang Tua'),
+                  // const SizedBox(height: 12),
+                  // _buildInfoCard([
+                  //   _buildInfoRow('Nama Ayah', siswa.namaAyah),
+                  //   _buildInfoRow('Nama Ibu', siswa.namaIbu),
+                  //   _buildInfoRow('No. Telepon', siswa.noTelpOrangTua),
+                  // ]),
                   const SizedBox(height: 24),
 
                   // Rekap Absensi Bulan Ini
@@ -139,12 +139,10 @@ class SiswaDetailScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   // ✅ FIX: Gunakan FutureBuilder karena getRekapAbsensiSiswa mengembalikan Future
                   FutureBuilder<Map<String, int>>(
-                    future: Provider.of<AbsensiProvider>(
-                      context,
-                      listen: false,
-                    ).getRekapAbsensiSiswa(
-                      siswa.id,
-                    ), // Hapus parameter month/year
+                    future: Provider.of<AbsensiProvider>(context, listen: false)
+                        .getRekapAbsensiSiswa(
+                          siswa.id,
+                        ), // Hapus parameter month/year
                     builder: (context, snapshot) {
                       final rekap =
                           snapshot.data ??
@@ -153,8 +151,9 @@ class SiswaDetailScreen extends StatelessWidget {
                         0,
                         (sum, val) => sum + val,
                       );
-                      final persentase =
-                          total > 0 ? (rekap['hadir']! / total * 100) : 0.0;
+                      final persentase = total > 0
+                          ? (rekap['hadir']! / total * 100)
+                          : 0.0;
 
                       return Card(
                         elevation: 2,
@@ -179,10 +178,9 @@ class SiswaDetailScreen extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color:
-                                          persentase >= 80
-                                              ? AppColors.success
-                                              : AppColors.error,
+                                      color: persentase >= 80
+                                          ? AppColors.success
+                                          : AppColors.error,
                                     ),
                                   ),
                                 ],
