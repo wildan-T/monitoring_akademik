@@ -739,28 +739,48 @@ class SupabaseService {
     }
   }
 
+  /// Update Data Profil Guru
+  // Future<void> updateGuruProfile(
+  //   String guruId,
+  //   Map<String, dynamic> data,
+  // ) async {
+  //   try {
+  //     await _supabase.from('guru').update(data).eq('id', guruId);
+  //   } catch (e) {
+  //     print('❌ Error updateGuruProfile: $e');
+  //     rethrow;
+  //   }
+  // }
+
   /// Update guru profile (SIMPLIFIED - only basic fields)
   Future<bool> updateGuruProfile({
     required String guruId,
     required String nuptk,
     required String nama,
     String? nip,
-    String? email,
-    String? noTelp,
     String? alamat,
     String? pendidikanTerakhir,
+    String? jenisKelamin,
+    String? tempatLahir,
+    DateTime? tanggalLahir,
+    String? agama,
+    String? statusKepegawaian,
   }) async {
     try {
       print('💾 Updating guru profile: $guruId');
 
       final guruUpdateData = <String, dynamic>{
         'nuptk': nuptk,
-        'nama': nama,
+        'nama_lengkap': nama,
         'nip': nip,
-        'email': email,
-        'no_telp': noTelp,
         'alamat': alamat,
         'pendidikan_terakhir': pendidikanTerakhir,
+        'jenis_kelamin': jenisKelamin,
+        'tempat_lahir': tempatLahir,
+        'tanggal_lahir': tanggalLahir?.toIso8601String(),
+        'agama': agama,
+        'status_kepegawaian': statusKepegawaian,
+
         'updated_at': DateTime.now().toIso8601String(),
       };
 
@@ -1806,6 +1826,93 @@ class SupabaseService {
     } catch (e) {
       print('❌ Error getAdminRekapNilai: $e');
       rethrow;
+    }
+  }
+
+  // --- FITUR WALI MURID ---
+  Future<String?> getWaliMuridId(String profileId) async {
+    final wali = await _supabase
+        .from('wali_murid')
+        .select('id')
+        .eq('profile_id', profileId)
+        .maybeSingle();
+
+    return wali?['id'];
+  }
+
+  /// 1. Cari Data Siswa berdasarkan ID Wali (Profile ID login)
+  Future<Map<String, dynamic>?> getSiswaByWaliId(String waliProfileId) async {
+    try {
+      // final waliMuridId = await getWaliMuridId(waliProfileId);
+      // if (waliMuridId == null) return null;
+      final response = await _supabase
+          .from('siswa')
+          .select('''
+          *,
+          kelas (
+            id,
+            nama_kelas
+          ),
+          wali_murid!inner (
+            id,
+            nama_lengkap,
+            jenis_kelamin,
+            pekerjaan,
+            alamat,
+            hubungan,
+            profile_id,
+            profiles (
+              id,
+              no_telepon,
+              email
+            )
+            )
+        ''')
+          .eq('wali_murid.profile_id', waliProfileId)
+          .maybeSingle();
+
+      return response;
+    } catch (e) {
+      print('❌ Error getSiswaByWaliId: $e');
+      return null;
+    }
+  }
+
+  /// 2. Ambil Jadwal Pelajaran Siswa (Berdasarkan Kelas)
+  Future<List<Map<String, dynamic>>> getJadwalSiswa(
+    String kelasId,
+    String tahunId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('jadwal_pelajaran')
+          .select('*, mata_pelajaran(nama_mapel), guru(nama_lengkap)')
+          .eq('kelas_id', kelasId)
+          .eq('tahun_pelajaran_id', tahunId)
+          .order('hari', ascending: true);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error getJadwalSiswa: $e');
+      return [];
+    }
+  }
+
+  /// 3. Ambil Absensi Siswa
+  Future<List<Map<String, dynamic>>> getAbsensiSiswa(
+    String siswaId,
+    String tahunId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('absensi')
+          .select('*, mata_pelajaran(nama_mapel)')
+          .eq('siswa_id', siswaId)
+          .eq('tahun_pelajaran_id', tahunId)
+          .order('tanggal', ascending: false); // Terbaru diatas
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error getAbsensiSiswa: $e');
+      return [];
     }
   }
 }

@@ -1,6 +1,7 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\screens\guru\guru_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:monitoring_akademik/presentation/screens/guru/absensi/guru_absensi_menu_screen.dart';
+import 'package:monitoring_akademik/presentation/screens/guru/guru_profile_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/guru/kelas/guru_kelasku_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/guru/nilai/guru_pilih_mapel_screen.dart';
 import 'package:monitoring_akademik/presentation/screens/guru/rekap/guru_rekap_menu_screen.dart';
@@ -433,9 +434,22 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
           ListTile(
             leading: const Icon(Icons.person_outline),
             title: const Text('Profil Saya'),
-            onTap: () {
+            onTap: () async {
+              // 1. Tutup Drawer dulu (opsional, biar rapi)
               Navigator.pop(context);
-              // Tambahkan navigasi ke profil
+
+              // 2. Gunakan 'await' agar kode berhenti di sini sampai User kembali dari Profil
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GuruProfileScreen()),
+              );
+
+              // 3. Kode ini baru jalan SETELAH user kembali (pop) dari layar Profil
+              if (mounted) {
+                print("🔄 Refreshing Dashboard data...");
+                // Refresh data Guru (termasuk status wali kelas, foto, nama baru)
+                _checkProfileStatus();
+              }
             },
           ),
           const Divider(),

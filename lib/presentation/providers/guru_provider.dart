@@ -46,7 +46,7 @@ class GuruProvider extends ChangeNotifier {
 
     try {
       await _supabaseService.updateGuru(guru);
-      await fetchAllGuru(); // Refresh list setelah update
+      await fetchGuruByProfileId(guru.id); // Refresh list setelah update
       return true;
     } catch (e) {
       _errorMessage = 'Gagal mengupdate guru: $e';
@@ -200,20 +200,55 @@ class GuruProvider extends ChangeNotifier {
     }
   }
 
+  // Future<bool> updateCurrentGuru(Map<String, dynamic> newData) async {
+  //     if (_currentGuru == null) return false;
+  //     _isLoading = true;
+  //     notifyListeners();
+
+  //     try {
+  //       await _supabaseService.updateGuruProfile(_currentGuru!.id, newData);
+
+  //       // Update data lokal di RAM agar UI langsung berubah tanpa reload
+  //       // Kita copy object lama dan timpa dengan data baru
+  //       _currentGuru = GuruModel(
+  //         id: _currentGuru!.id,
+  //         profileId: _currentGuru!.profileId,
+  //         nip: _currentGuru!.nip, // NIP tidak berubah
+  //         nama: newData['nama_lengkap'] ?? _currentGuru!.nama,
+  //         jenisKelamin: newData['jenis_kelamin'] ?? _currentGuru!.jenisKelamin,
+  //         tempatLahir: newData['tempat_lahir'] ?? _currentGuru!.tempatLahir,
+  //         tanggalLahir: newData['tanggal_lahir'] ?? _currentGuru!.tanggalLahir,
+  //         alamat: newData['alamat'] ?? _currentGuru!.alamat,
+  //         pendidikanTerakhir: newData['pendidikan_terakhir'] ?? _currentGuru!.pendidikanTerakhir,
+  //         statusKepegawaian: newData['status_kepegawaian'] ?? _currentGuru!.statusKepegawaian,
+  //         agama: newData['agama'] ?? _currentGuru!.agama,
+  //         nuptk: _currentGuru!.nuptk, // NUPTK tidak berubah
+  //       );
+
+  //       _isLoading = false;
+  //       notifyListeners();
+  //       return true;
+  //     } catch (e) {
+  //       _errorMessage = e.toString();
+  //       _isLoading = false;
+  //       notifyListeners();
+  //       return false;
+  //     }
+  //   }
+
   // ✅ UPDATE GURU PROFILE
   Future<bool> updateGuruProfile({
     required String guruId,
     required String nuptk,
     required String nama,
     String? nip,
-    String? email,
-    String? noTelp,
     String? alamat,
     String? pendidikanTerakhir,
     String? jenisKelamin,
     String? tempatLahir,
     DateTime? tanggalLahir,
     String? agama,
+    String? statusKepegawaian,
   }) async {
     try {
       _isLoading = true;
@@ -227,10 +262,13 @@ class GuruProvider extends ChangeNotifier {
         nuptk: nuptk,
         nama: nama,
         nip: nip,
-        email: email,
-        noTelp: noTelp,
         alamat: alamat,
         pendidikanTerakhir: pendidikanTerakhir,
+        jenisKelamin: jenisKelamin,
+        tempatLahir: tempatLahir,
+        tanggalLahir: tanggalLahir,
+        agama: agama,
+        statusKepegawaian: statusKepegawaian,
       );
 
       if (success) {
