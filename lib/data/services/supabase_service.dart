@@ -1059,15 +1059,8 @@ class SupabaseService {
       final response = await _supabase
           .from('siswa')
           .select('''
-            *,
-            kelas:kelas_id(nama_kelas),  
-            profiles:wali_murid_id (     
-              email,
-              no_telepon,
-              wali_murid (
-                nama_lengkap
-              )
-            )
+            *, 
+            wali_murid(*)
           ''')
           .eq('kelas_id', kelasId)
           .order('nama_lengkap', ascending: true);
