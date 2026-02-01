@@ -367,7 +367,7 @@ class _JadwalManagerScreenState extends State<JadwalManagerScreen> {
                           children: [
                             Text('Guru: ${jadwal.namaGuru}'),
                             Text(
-                              'Jam: ${jadwal.jamMulai.substring(0, 5)} - ${jadwal.jamSelesai.substring(0, 5)}',
+                              '${jadwal.hari}, Jam: ${jadwal.jamMulai.substring(0, 5)} - ${jadwal.jamSelesai.substring(0, 5)}',
                               style: const TextStyle(color: Colors.blue),
                             ),
                           ],
