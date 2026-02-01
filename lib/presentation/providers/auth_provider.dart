@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\auth_provider.dart
 import 'package:flutter/foundation.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/supabase_service.dart';
 import '../../core/constants/app_constants.dart';
@@ -85,7 +86,7 @@ class AuthProvider with ChangeNotifier {
       throw Exception('Login gagal: User null');
     } catch (e) {
       print('❌ Error login: $e');
-      _errorMessage = 'Login gagal: ${e.toString()}';
+      _errorMessage = ErrorHandler.interpret(e);
       _currentUser = null;
       _isLoading = false;
       notifyListeners();
@@ -103,7 +104,7 @@ class AuthProvider with ChangeNotifier {
       print('✅ Logout berhasil');
     } catch (e) {
       print('❌ Error logout: $e');
-      _errorMessage = 'Logout gagal: ${e.toString()}';
+      _errorMessage = 'Logout gagal: ${ErrorHandler.interpret(e)}';
       notifyListeners();
     }
   }

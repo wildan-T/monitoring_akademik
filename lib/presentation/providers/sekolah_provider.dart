@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\sekolah_provider.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/sekolah_model.dart';
 
 class SekolahProvider with ChangeNotifier {
@@ -50,7 +51,8 @@ class SekolahProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Gagal mengupdate data sekolah: ${e.toString()}';
+      _errorMessage =
+          'Gagal mengupdate data sekolah: ${ErrorHandler.interpret(e)}';
       _isLoading = false;
       notifyListeners();
       return false;
@@ -76,7 +78,7 @@ class SekolahProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Gagal mengupload logo: ${e.toString()}';
+      _errorMessage = 'Gagal mengupload logo: ${ErrorHandler.interpret(e)}';
       _isLoading = false;
       notifyListeners();
       return false;
@@ -102,7 +104,7 @@ class SekolahProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Gagal menghapus logo: ${e.toString()}';
+      _errorMessage = 'Gagal menghapus logo: ${ErrorHandler.interpret(e)}';
       _isLoading = false;
       notifyListeners();
       return false;

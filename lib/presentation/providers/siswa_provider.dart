@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:excel/excel.dart' show Excel;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import 'package:monitoring_akademik/presentation/providers/kelas_provider.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/siswa_model.dart';
@@ -34,7 +35,7 @@ class SiswaProvider extends ChangeNotifier {
         return SiswaModel.fromJson(e, waliData: waliData);
       }).toList();
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -102,7 +103,7 @@ class SiswaProvider extends ChangeNotifier {
       }).toList();
     } catch (e) {
       print('❌ Error fetchSiswaByKelas: $e');
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       _siswaList = [];
     } finally {
       _isLoading = false;
@@ -119,7 +120,7 @@ class SiswaProvider extends ChangeNotifier {
       await fetchAllSiswa(); // Refresh
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       return false;
     } finally {
       _isLoading = false;
@@ -136,7 +137,7 @@ class SiswaProvider extends ChangeNotifier {
       await fetchAllSiswa();
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       return false;
     } finally {
       _isLoading = false;

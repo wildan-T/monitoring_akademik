@@ -1,4 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\data\models\absensi_model.dart
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
+
 import '../../domain/entities/absensi_entity.dart';
 
 class AbsensiModel extends AbsensiEntity {
@@ -21,10 +23,7 @@ class AbsensiModel extends AbsensiEntity {
   });
 
   // ✅ Helper: Get siswa object for compatibility
-  Map<String, dynamic> get siswa => {
-    'id': siswaId,
-    'nama': namaSiswa,
-  };
+  Map<String, dynamic> get siswa => {'id': siswaId, 'nama': namaSiswa};
 
   // Copy with
   AbsensiModel copyWith({
@@ -68,23 +67,37 @@ class AbsensiModel extends AbsensiEntity {
     final siswaData = json['siswa'] is Map ? json['siswa'] : null;
     final guruData = json['guru'] is Map ? json['guru'] : null;
     final kelasData = json['kelas'] is Map ? json['kelas'] : null;
-    final mapelData = json['mata_pelajaran'] is Map ? json['mata_pelajaran'] : null;
+    final mapelData = json['mata_pelajaran'] is Map
+        ? json['mata_pelajaran']
+        : null;
 
     return AbsensiModel(
       id: json['id']?.toString() ?? '',
       siswaId: json['siswa_id']?.toString() ?? '',
-      namaSiswa: siswaData?['nama']?.toString() ?? json['nama_siswa']?.toString() ?? 'Unknown',
+      namaSiswa:
+          siswaData?['nama']?.toString() ??
+          json['nama_siswa']?.toString() ??
+          'Unknown',
       guruId: json['guru_id']?.toString() ?? '',
-      namaGuru: guruData?['nama']?.toString() ?? json['nama_guru']?.toString() ?? 'Unknown',
+      namaGuru:
+          guruData?['nama']?.toString() ??
+          json['nama_guru']?.toString() ??
+          'Unknown',
       kelasId: json['kelas_id']?.toString() ?? '',
-      kelas: kelasData?['nama']?.toString() ?? json['kelas']?.toString() ?? 'Unknown',
+      kelas:
+          kelasData?['nama']?.toString() ??
+          json['kelas']?.toString() ??
+          'Unknown',
       mataPelajaranId: json['mata_pelajaran_id']?.toString() ?? '',
-      mataPelajaran: mapelData?['nama']?.toString() ?? json['mata_pelajaran']?.toString() ?? 'Unknown',
-      tanggal: json['tanggal'] != null 
+      mataPelajaran:
+          mapelData?['nama']?.toString() ??
+          json['mata_pelajaran']?.toString() ??
+          'Unknown',
+      tanggal: json['tanggal'] != null
           ? DateTime.parse(json['tanggal'].toString())
           : DateTime.now(),
-      pertemuan: json['pertemuan'] is int 
-          ? json['pertemuan'] 
+      pertemuan: json['pertemuan'] is int
+          ? json['pertemuan']
           : int.tryParse(json['pertemuan']?.toString() ?? '1') ?? 1,
       status: _parseStatus(json['status']),
       keterangan: json['keterangan']?.toString(),
@@ -100,7 +113,7 @@ class AbsensiModel extends AbsensiEntity {
   // Helper: Parse status from String
   static AbsensiStatus _parseStatus(dynamic status) {
     if (status == null) return AbsensiStatus.hadir;
-    
+
     final statusStr = status.toString().toLowerCase();
     switch (statusStr) {
       case 'hadir':
@@ -114,7 +127,7 @@ class AbsensiModel extends AbsensiEntity {
       default:
         try {
           return AbsensiStatus.values.firstWhere(
-            (e) => e.toString() == status.toString(),
+            (e) => ErrorHandler.interpret(e) == status.toString(),
             orElse: () => AbsensiStatus.hadir,
           );
         } catch (_) {

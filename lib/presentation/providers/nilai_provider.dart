@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/nilai_model.dart';
 import '../../data/models/siswa_model.dart'; // Pastikan ada
 import '../../data/services/supabase_service.dart';
@@ -65,7 +66,7 @@ class NilaiProvider extends ChangeNotifier {
         );
       }).toList();
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -90,7 +91,7 @@ class NilaiProvider extends ChangeNotifier {
       }
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       notifyListeners();
       return false;
     }

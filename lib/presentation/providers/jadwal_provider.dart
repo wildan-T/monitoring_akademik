@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/jadwal_model.dart';
 import '../../data/services/supabase_service.dart';
 
@@ -79,7 +80,7 @@ class JadwalProvider with ChangeNotifier {
       await fetchJadwal(tahunPelajaranId: tahunPelajaranId, kelasId: kelasId);
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       notifyListeners();
       return false;
     }

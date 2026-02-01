@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/color_constants.dart';
 import '../../../providers/auth_provider.dart';
@@ -61,7 +62,7 @@ class _GuruPilihMapelScreenState extends State<GuruPilihMapelScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = ErrorHandler.interpret(e);
           _isLoading = false;
         });
       }

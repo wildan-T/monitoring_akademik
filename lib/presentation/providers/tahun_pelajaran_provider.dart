@@ -1,5 +1,6 @@
 // lib/presentation/providers/tahun_pelajaran_provider.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/tahun_pelajaran_model.dart';
 import '../../data/services/supabase_service.dart';
 
@@ -66,7 +67,7 @@ class TahunPelajaranProvider with ChangeNotifier {
       await fetchTahunPelajaran();
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       return false;
     } finally {
       _isLoading = false;

@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\guru_provider.dart
 import 'package:flutter/foundation.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/services/supabase_service.dart';
 import '../../data/models/guru_model.dart';
 import '../../domain/entities/guru_entity.dart';
@@ -102,7 +103,7 @@ class GuruProvider extends ChangeNotifier {
   //     return success;
   //   } catch (e) {
   //     print('❌ ERROR addGuru: $e');
-  //     _errorMessage = e.toString();
+  //     _errorMessage = ErrorHandler.interpret(e);
   //     _isLoading = false;
   //     notifyListeners();
   //     return false;
@@ -127,7 +128,7 @@ class GuruProvider extends ChangeNotifier {
       print('✅ Fetched ${_guruList.length} guru');
     } catch (e) {
       print('❌ Error fetching guru: $e');
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       _guruList = [];
     } finally {
       _isLoading = false;
@@ -159,7 +160,7 @@ class GuruProvider extends ChangeNotifier {
   //     }
   //   } catch (e) {
   //     print('❌ Error fetching guru by profile ID: $e');
-  //     _errorMessage = e.toString();
+  //     _errorMessage = ErrorHandler.interpret(e);
   //     _currentGuru = null;
   //   } finally {
   //     _isLoading = false;
@@ -183,7 +184,7 @@ class GuruProvider extends ChangeNotifier {
       }
     } catch (e) {
       print('Error fetching guru: $e');
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -229,7 +230,7 @@ class GuruProvider extends ChangeNotifier {
   //       notifyListeners();
   //       return true;
   //     } catch (e) {
-  //       _errorMessage = e.toString();
+  //       _errorMessage = ErrorHandler.interpret(e);
   //       _isLoading = false;
   //       notifyListeners();
   //       return false;
@@ -287,7 +288,7 @@ class GuruProvider extends ChangeNotifier {
       return success;
     } catch (e) {
       print('❌ Error updating guru profile: $e');
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       return false;
     } finally {
       _isLoading = false;
@@ -320,7 +321,7 @@ class GuruProvider extends ChangeNotifier {
       return success;
     } catch (e) {
       print('❌ Error setting wali kelas: $e');
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       return false;
     } finally {
       _isLoading = false;
@@ -347,7 +348,7 @@ class GuruProvider extends ChangeNotifier {
       return success;
     } catch (e) {
       print('❌ Error removing wali kelas: $e');
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       return false;
     } finally {
       _isLoading = false;

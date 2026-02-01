@@ -1,5 +1,6 @@
 //C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\absensi_provider.dart
 import 'package:flutter/foundation.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/absensi_model.dart';
 import '../../data/services/supabase_service.dart';
 import '../../domain/entities/absensi_entity.dart';
@@ -86,7 +87,7 @@ class AbsensiProvider with ChangeNotifier {
         print('✅ Fetched ${_absensiList.length} absensi records');
       }
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       _isLoading = false;
       notifyListeners();
 
@@ -123,26 +124,32 @@ class AbsensiProvider with ChangeNotifier {
   }
 
   // Get rekap absensi siswa - FIXED
-// ✅ FIXED: Use helper method for comparison
-Future<Map<String, int>> getRekapAbsensiSiswa(String siswaId) async {
-  try {
-    final absensiList = await getAbsensiSiswa(siswaId);
+  // ✅ FIXED: Use helper method for comparison
+  Future<Map<String, int>> getRekapAbsensiSiswa(String siswaId) async {
+    try {
+      final absensiList = await getAbsensiSiswa(siswaId);
 
-    final Map<String, int> rekap = {
-      'hadir': absensiList.where((a) => a.status == AbsensiStatus.hadir).length,
-      'izin': absensiList.where((a) => a.status == AbsensiStatus.izin).length,
-      'sakit': absensiList.where((a) => a.status == AbsensiStatus.sakit).length,
-      'alpha': absensiList.where((a) => a.status == AbsensiStatus.alpha).length,
-    };
+      final Map<String, int> rekap = {
+        'hadir': absensiList
+            .where((a) => a.status == AbsensiStatus.hadir)
+            .length,
+        'izin': absensiList.where((a) => a.status == AbsensiStatus.izin).length,
+        'sakit': absensiList
+            .where((a) => a.status == AbsensiStatus.sakit)
+            .length,
+        'alpha': absensiList
+            .where((a) => a.status == AbsensiStatus.alpha)
+            .length,
+      };
 
-    return rekap;
-  } catch (e) {
-    if (kDebugMode) {
-      print('❌ Error getting rekap absensi: $e');
+      return rekap;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error getting rekap absensi: $e');
+      }
+      return {'hadir': 0, 'izin': 0, 'sakit': 0, 'alpha': 0};
     }
-    return {'hadir': 0, 'izin': 0, 'sakit': 0, 'alpha': 0};
   }
-}
 
   // Get persentase kehadiran
   Future<double> getPersentaseKehadiran(String siswaId) async {
@@ -196,7 +203,7 @@ Future<Map<String, int>> getRekapAbsensiSiswa(String siswaId) async {
 
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       notifyListeners();
 
       if (kDebugMode) {
@@ -208,51 +215,57 @@ Future<Map<String, int>> getRekapAbsensiSiswa(String siswaId) async {
   }
 
   // Update absensi - FIXED
-// ✅ FIXED: Accept String status parameter
-Future<bool> updateAbsensi(
-  String absensiId,
-  String status, // ✅ Accept String directly
-  String keterangan,
-) async {
-  try {
-    await _supabaseService.supabase
-        .from('absensi')
-        .update({
-          'status': status, // ✅ Save as String to DB
-          'keterangan': keterangan,
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', absensiId);
+  // ✅ FIXED: Accept String status parameter
+  Future<bool> updateAbsensi(
+    String absensiId,
+    String status, // ✅ Accept String directly
+    String keterangan,
+  ) async {
+    try {
+      await _supabaseService.supabase
+          .from('absensi')
+          .update({
+            'status': status, // ✅ Save as String to DB
+            'keterangan': keterangan,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', absensiId);
+
+      if (kDebugMode) {
+        print('✅ Updated absensi: $absensiId');
+      }
+
+      return true;
+    } catch (e) {
+      _errorMessage = ErrorHandler.interpret(e);
+      notifyListeners();
+
+      if (kDebugMode) {
+        print('❌ Error updating absensi: $e');
+      }
+
+      return false;
+    }
+  }
+
+  // Calculate statistik - FIXED
+  // ✅ FIXED: Direct enum comparison (no conversion needed)
+  void _calculateStatistik() {
+    _statistikKehadiran = {
+      'hadir': _absensiList
+          .where((a) => a.status == AbsensiStatus.hadir)
+          .length,
+      'izin': _absensiList.where((a) => a.status == AbsensiStatus.izin).length,
+      'sakit': _absensiList
+          .where((a) => a.status == AbsensiStatus.sakit)
+          .length,
+      'alpha': _absensiList
+          .where((a) => a.status == AbsensiStatus.alpha)
+          .length,
+    };
 
     if (kDebugMode) {
-      print('✅ Updated absensi: $absensiId');
+      print('📊 Statistik: $_statistikKehadiran');
     }
-
-    return true;
-  } catch (e) {
-    _errorMessage = e.toString();
-    notifyListeners();
-
-    if (kDebugMode) {
-      print('❌ Error updating absensi: $e');
-    }
-
-    return false;
   }
-}
-
-  // Calculate statistik - FIXED  
-// ✅ FIXED: Direct enum comparison (no conversion needed)
-void _calculateStatistik() {
-  _statistikKehadiran = {
-    'hadir': _absensiList.where((a) => a.status == AbsensiStatus.hadir).length,
-    'izin': _absensiList.where((a) => a.status == AbsensiStatus.izin).length,
-    'sakit': _absensiList.where((a) => a.status == AbsensiStatus.sakit).length,
-    'alpha': _absensiList.where((a) => a.status == AbsensiStatus.alpha).length,
-  };
-
-  if (kDebugMode) {
-    print('📊 Statistik: $_statistikKehadiran');
-  }
-}
 }

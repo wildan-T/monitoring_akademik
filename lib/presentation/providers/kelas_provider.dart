@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/kelas_model.dart';
 import '../../data/services/supabase_service.dart';
 
@@ -38,7 +39,7 @@ class KelasProvider with ChangeNotifier {
       }
     } catch (e) {
       print('Error fetchMyKelas: $e');
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       _myKelas = null;
     } finally {
       _isLoading = false;
@@ -65,7 +66,7 @@ class KelasProvider with ChangeNotifier {
       // Sort by nama kelas
       _kelasMengajarList.sort((a, b) => a.namaKelas.compareTo(b.namaKelas));
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -164,7 +165,7 @@ class KelasProvider with ChangeNotifier {
       await fetchAllKelas(); // Refresh data
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       return false;
     } finally {
       _isLoading = false;

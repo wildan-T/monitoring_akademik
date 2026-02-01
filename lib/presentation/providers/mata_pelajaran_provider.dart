@@ -1,5 +1,6 @@
 // lib/presentation/providers/mata_pelajaran_provider.dart
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/mata_pelajaran_model.dart';
 import '../../data/services/supabase_service.dart';
 
@@ -62,7 +63,7 @@ class MataPelajaranProvider with ChangeNotifier {
       await fetchMataPelajaran(); // Refresh list
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = ErrorHandler.interpret(e);
       if (e.toString().contains('duplicate key')) {
         _errorMessage = 'Kode Mapel "$kodeMapel" sudah ada.';
       }
