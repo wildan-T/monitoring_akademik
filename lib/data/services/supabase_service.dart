@@ -1575,7 +1575,7 @@ class SupabaseService {
           .from('jadwal_pelajaran')
           .select('''
             id,
-            mata_pelajaran(id, nama_mapel),
+            mata_pelajaran(id, nama_mapel, kategori),
             kelas(id, nama_kelas)
           ''')
           .eq('guru_id', guruId)
@@ -1595,6 +1595,7 @@ class SupabaseService {
               'nama_kelas': kelas['nama_kelas'],
               'mapel_id': mapel['id'],
               'nama_mapel': mapel['nama_mapel'],
+              'kategori': mapel['kategori'],
             };
           }
         }
@@ -1631,7 +1632,7 @@ class SupabaseService {
           .from('nilai')
           .select('''
             *,
-            mata_pelajaran(nama_mapel)
+            mata_pelajaran(nama_mapel, kategori)
           ''') // Join ke mapel
           .eq('siswa_id', siswaId)
           .eq('tahun_pelajaran_id', tahunId);
@@ -1906,6 +1907,24 @@ class SupabaseService {
     } catch (e) {
       print('❌ Error getAbsensiSiswa: $e');
       return [];
+    }
+  }
+
+  /// Ambil Data Wali Kelas berdasarkan Kelas ID
+  Future<Map<String, dynamic>?> getWaliKelasByKelasId(String kelasId) async {
+    try {
+      // Asumsi: Tabel 'kelas' punya kolom 'wali_kelas_id' yang foreign key ke 'guru'
+      final response = await _supabase
+          .from('kelas')
+          .select('guru(*)') // Join ke tabel guru
+          .eq('id', kelasId)
+          .maybeSingle();
+
+      // Response akan berbentuk: { "guru": { "nama_lengkap": "...", "nip": "..." } }
+      return response?['guru'];
+    } catch (e) {
+      print('❌ Error getWaliKelasByKelasId: $e');
+      return null;
     }
   }
 }

@@ -20,28 +20,55 @@ class _WaliNilaiScreenState extends State<WaliNilaiScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _nilaiList = [];
 
+  String _namaWaliKelas = '';
+  String _nipWaliKelas = '';
+
   @override
   void initState() {
     super.initState();
-    _loadNilai();
+    _loadData();
   }
 
-  Future<void> _loadNilai() async {
+  Future<void> _loadData() async {
     try {
       final tahunProv = context.read<TahunPelajaranProvider>();
-      final tahunAktif = tahunProv.tahunList.firstWhere((t) => t.isActive);
+      // Pastikan tahun pelajaran sudah terload
+      if (tahunProv.tahunList.isEmpty) await tahunProv.fetchTahunPelajaran();
 
-      final data = await SupabaseService().getNilaiRaporSiswa(
+      final tahunAktif = tahunProv.tahunList.firstWhere(
+        (t) => t.isActive,
+        orElse: () => tahunProv.tahunList.first, // Fallback
+      );
+
+      // 1. Ambil Nilai Siswa
+      final dataNilai = await SupabaseService().getNilaiRaporSiswa(
         widget.siswaData['id'],
         tahunAktif.id,
       );
 
-      if (mounted)
+      // 2. ✅ AMBIL DATA WALI KELAS
+      // Cek apakah siswa punya kelas_id
+      if (widget.siswaData['kelas_id'] != null) {
+        final dataGuru = await SupabaseService().getWaliKelasByKelasId(
+          widget.siswaData['kelas_id'],
+        );
+
+        if (dataGuru != null) {
+          setState(() {
+            _namaWaliKelas = dataGuru['nama_lengkap'] ?? '';
+            _nipWaliKelas = dataGuru['nip'] ?? '';
+          });
+        }
+      }
+
+      if (mounted) {
         setState(() {
-          _nilaiList = data;
+          _nilaiList = dataNilai;
           _isLoading = false;
         });
+      }
     } catch (e) {
+      print("Error load data: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -58,13 +85,11 @@ class _WaliNilaiScreenState extends State<WaliNilaiScreen> {
       final tahunProv = context.read<TahunPelajaranProvider>();
       final tahunAktif = tahunProv.tahunList.firstWhere((t) => t.isActive);
 
-      // Convert Map ke Model Siswa (Manual mapping simpel)
       final siswaModel = SiswaModel(
         id: widget.siswaData['id'],
         nama: widget.siswaData['nama_lengkap'],
         nisn: widget.siswaData['nisn'] ?? '-',
         kelasId: widget.siswaData['kelas_id'] ?? '',
-        // ... field lain opsional untuk PDF
         jenisKelamin: widget.siswaData['jenis_kelamin'] ?? 'L',
       );
 
@@ -77,7 +102,8 @@ class _WaliNilaiScreenState extends State<WaliNilaiScreen> {
         namaKelas: namaKelas,
         tahunAjaran: tahunAktif.tahun.toString(),
         semester: tahunAktif.semester.toString(),
-        namaWaliKelas: "Wali Kelas", // Bisa diambil jika query diperluas
+        namaWaliKelas: _namaWaliKelas,
+        nipWaliKelas: _nipWaliKelas,
         listNilaiRaw: _nilaiList,
       );
 
@@ -89,7 +115,7 @@ class _WaliNilaiScreenState extends State<WaliNilaiScreen> {
         );
       }
     } catch (e) {
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context); // Tutup dialog jika error
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Gagal print: $e")));

@@ -125,6 +125,7 @@ class _GuruKelaskuScreenState extends State<GuruKelaskuScreen>
         tahunAjaran: tahunAktif.tahun.toString(),
         semester: tahunAktif.semester.toString(),
         namaWaliKelas: guruProv.currentGuru?.nama ?? 'Wali Kelas',
+        nipWaliKelas: guruProv.currentGuru?.nip ?? '...............',
         listNilaiRaw: dataNilai,
       );
 

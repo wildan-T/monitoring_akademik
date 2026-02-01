@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/core/utils/nilai_converter.dart';
 import 'package:monitoring_akademik/presentation/providers/guru_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/color_constants.dart';
@@ -12,6 +13,7 @@ class GuruNilaiInputScreen extends StatefulWidget {
   final String mapelId;
   final String mapelNama;
   final String tahunId;
+  final String kategoriMapel;
 
   const GuruNilaiInputScreen({
     super.key,
@@ -19,6 +21,7 @@ class GuruNilaiInputScreen extends StatefulWidget {
     required this.mapelId,
     required this.mapelNama,
     required this.tahunId,
+    required this.kategoriMapel,
   });
 
   @override
@@ -65,6 +68,7 @@ class _GuruNilaiInputScreenState extends State<GuruNilaiInputScreen> {
           kelasId: widget.kelasId,
           mapelId: widget.mapelId,
           tahunId: widget.tahunId,
+          kategoriMapel: widget.kategoriMapel,
         ),
       ),
     );
@@ -93,6 +97,21 @@ class _GuruNilaiInputScreenState extends State<GuruNilaiInputScreen> {
             itemBuilder: (context, index) {
               final item = provider.inputList[index];
               final sudahDinilai = item.nilai != null;
+
+              // Tampilan Subtitle beda Akademik vs Ekskul
+              String subtitleText = 'Belum ada nilai';
+              if (sudahDinilai) {
+                if (widget.kategoriMapel == 'Ekstrakulikuler') {
+                  // Tampilkan Predikat untuk Ekskul
+                  final predikat = NilaiConverter.angkaToPredikat(
+                    item.nilai!.nilaiAkhir ?? 0,
+                  );
+                  subtitleText = 'Predikat: $predikat';
+                } else {
+                  // Tampilkan Angka untuk Akademik
+                  subtitleText = 'Nilai Akhir: ${item.nilai!.nilaiAkhir}';
+                }
+              }
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -153,6 +172,7 @@ class _FormNilaiWidget extends StatefulWidget {
   final String kelasId;
   final String mapelId;
   final String tahunId;
+  final String kategoriMapel;
 
   const _FormNilaiWidget({
     required this.siswa,
@@ -160,6 +180,7 @@ class _FormNilaiWidget extends StatefulWidget {
     required this.kelasId,
     required this.mapelId,
     required this.tahunId,
+    required this.kategoriMapel,
   });
 
   @override
@@ -174,8 +195,10 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
   late TextEditingController _utsCtrl;
   late TextEditingController _uasCtrl;
   late TextEditingController _praktikCtrl;
+  String _selectedPredikat = 'B';
   String? _selectedSikap;
   bool _isSaving = false;
+  double _previewNilai = 0;
 
   @override
   void initState() {
@@ -189,35 +212,46 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
       text: n?.nilaiPraktik?.toString() ?? '0',
     );
     _selectedSikap = n?.nilaiSikap ?? 'B';
+    if (widget.kategoriMapel == 'Ekstrakulikuler' && n != null) {
+      _selectedPredikat = NilaiConverter.angkaToPredikat(n.nilaiAkhir ?? 0);
+    }
+    _hitungNilaiAkhir();
   }
 
   // ==================================================
   // 🧮 LOGIC MENGHITUNG NILAI AKHIR
   // ==================================================
   double _hitungNilaiAkhir() {
-    // 1. Ambil nilai dari controller (default 0 jika kosong)
-    double tugas = double.tryParse(_tugasCtrl.text) ?? 0;
-    double uh = double.tryParse(_uhCtrl.text) ?? 0;
-    double uts = double.tryParse(_utsCtrl.text) ?? 0;
-    double uas = double.tryParse(_uasCtrl.text) ?? 0;
-    double praktik = double.tryParse(_praktikCtrl.text) ?? 0;
+    double nilaiAkhir = 0;
 
-    // --- OPSI 1: RATA-RATA SEDERHANA (Semua bobot sama) ---
-    // return (tugas + uh + uts + uas) / 4;
+    if (widget.kategoriMapel == 'Ekstrakulikuler') {
+      // KONVERSI EKSKUL (Huruf -> Angka)
+      nilaiAkhir = NilaiConverter.predikatToAngka(_selectedPredikat);
+    } else {
+      // 1. Ambil nilai dari controller (default 0 jika kosong)
+      double tugas = double.tryParse(_tugasCtrl.text) ?? 0;
+      double uh = double.tryParse(_uhCtrl.text) ?? 0;
+      double uts = double.tryParse(_utsCtrl.text) ?? 0;
+      double uas = double.tryParse(_uasCtrl.text) ?? 0;
+      double praktik = double.tryParse(_praktikCtrl.text) ?? 0;
 
-    // --- OPSI 2: PEMBOBOTAN STANDAR (Contoh Umum) ---
-    // Nilai Harian (Rata2 Tugas & UH) = 40%
-    // Nilai UTS = 30%
-    // Nilai UAS = 30%
+      // --- OPSI 1: RATA-RATA SEDERHANA (Semua bobot sama) ---
+      // return (tugas + uh + uts + uas) / 4;
 
-    double nilaiHarian = (tugas + uh) / 2;
+      // --- OPSI 2: PEMBOBOTAN STANDAR (Contoh Umum) ---
+      // Nilai Harian (Rata2 Tugas & UH) = 40%
+      // Nilai UTS = 30%
+      // Nilai UAS = 30%
 
-    // Rumus: (Harian * 40%) + (UTS * 30%) + (UAS * 30%)
-    double nilaiAkhir = (nilaiHarian * 0.40) + (uts * 0.30) + (uas * 0.30);
+      double nilaiHarian = (tugas + uh) / 2;
 
-    // Jika Praktik ikut dihitung (Misal bobot 20% dari total, Akademik 80%)
-    // nilaiAkhir = (nilaiAkhir * 0.8) + (praktik * 0.2);
+      // Rumus: (Harian * 40%) + (UTS * 30%) + (UAS * 30%)
+      double nilaiAkhir = (nilaiHarian * 0.40) + (uts * 0.30) + (uas * 0.30);
 
+      // Jika Praktik ikut dihitung (Misal bobot 20% dari total, Akademik 80%)
+      // nilaiAkhir = (nilaiAkhir * 0.8) + (praktik * 0.2);
+    }
+    setState(() => _previewNilai = nilaiAkhir); // Update UI Preview
     // Pembulatan 2 angka di belakang koma agar rapi
     return double.parse(nilaiAkhir.toStringAsFixed(2));
   }
@@ -240,6 +274,7 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
       return;
     }
 
+    final isEkskul = widget.kategoriMapel == 'Ekstrakulikuler';
     final guruId = guruProv.currentGuru!.id;
 
     // Buat Objek Nilai Baru
@@ -251,16 +286,16 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
       kelasId: widget.kelasId,
       guruId: guruId,
 
-      nilaiTugas: double.tryParse(_tugasCtrl.text) ?? 0,
-      nilaiUh: double.tryParse(_uhCtrl.text) ?? 0,
-      nilaiUts: double.tryParse(_utsCtrl.text) ?? 0,
-      nilaiUas: double.tryParse(_uasCtrl.text) ?? 0,
-      nilaiPraktik: double.tryParse(_praktikCtrl.text) ?? 0,
+      nilaiTugas: isEkskul ? 0 : double.tryParse(_tugasCtrl.text) ?? 0,
+      nilaiUh: isEkskul ? 0 : double.tryParse(_uhCtrl.text) ?? 0,
+      nilaiUts: isEkskul ? 0 : double.tryParse(_utsCtrl.text) ?? 0,
+      nilaiUas: isEkskul ? 0 : double.tryParse(_uasCtrl.text) ?? 0,
+      nilaiPraktik: isEkskul ? 0 : double.tryParse(_praktikCtrl.text) ?? 0,
 
       // ✅ HITUNG OTOMATIS DI SINI
       nilaiAkhir: _hitungNilaiAkhir(),
 
-      nilaiSikap: _selectedSikap,
+      nilaiSikap: isEkskul ? null : _selectedSikap,
       isFinalized: false,
     );
 
@@ -283,6 +318,8 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final isEkskul = widget.kategoriMapel == 'Ekstrakulikuler';
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.85, // 85% layar
       padding: const EdgeInsets.all(16),
@@ -313,56 +350,139 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
             Expanded(
               child: ListView(
                 children: [
-                  const Text(
-                    'Nilai Pengetahuan',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                  // ==========================================
+                  // 🟡 FORM EKSKUL
+                  // ==========================================
+                  if (isEkskul) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Penilaian Ekstrakulikuler menggunakan Predikat.",
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(child: _buildNumField('Tugas', _tugasCtrl)),
-                      const SizedBox(width: 10),
-                      Expanded(child: _buildNumField('UH (Harian)', _uhCtrl)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(child: _buildNumField('UTS', _utsCtrl)),
-                      const SizedBox(width: 10),
-                      Expanded(child: _buildNumField('UAS', _uasCtrl)),
-                    ],
-                  ),
+                    const SizedBox(height: 20),
 
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Nilai Keterampilan & Sikap',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                    DropdownButtonFormField<String>(
+                      value: _selectedPredikat,
+                      decoration: const InputDecoration(
+                        labelText: "Predikat Nilai",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: ['A', 'B', 'C', 'D']
+                          .map(
+                            (e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(
+                                "$e - ${NilaiConverter.getKeteranganDefault(e)}",
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() => _selectedPredikat = val!);
+                        _hitungNilaiAkhir();
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildNumField('Praktik / Keterampilan', _praktikCtrl),
-                  const SizedBox(height: 10),
+                  ],
 
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Nilai Sikap',
-                      border: OutlineInputBorder(),
+                  // ==========================================
+                  // 🔵 FORM AKADEMIK
+                  // ==========================================
+                  if (!isEkskul) ...[
+                    const Text(
+                      'Nilai Pengetahuan',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
                     ),
-                    value: _selectedSikap,
-                    items: ['A', 'B', 'C', 'D']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (val) => setState(() => _selectedSikap = val),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(child: _buildNumField('Tugas', _tugasCtrl)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildNumField('UH (Harian)', _uhCtrl)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(child: _buildNumField('UTS', _utsCtrl)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildNumField('UAS', _uasCtrl)),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    const Text(
+                      'Keterampilan & Sikap',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildNumField('Praktik / Keterampilan', _praktikCtrl),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Nilai Sikap',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: _selectedSikap,
+                      items: ['A', 'B', 'C', 'D']
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
+                          .toList(),
+                      onChanged: (val) => setState(() => _selectedSikap = val),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // PREVIEW NILAI AKHIR
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Hasil Akhir:",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    isEkskul
+                        ? _selectedPredikat
+                        : _previewNilai.toStringAsFixed(2),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isEkskul
+                          ? Colors.blue
+                          : (_previewNilai >= 75 ? Colors.green : Colors.red),
+                    ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -390,8 +510,6 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
   }
 
   Widget _buildNumField(String label, TextEditingController ctrl) {
-    double _previewNilaiAkhir = 0; // State untuk tampilan
-
     return TextFormField(
       controller: ctrl,
       keyboardType: TextInputType.number,
@@ -400,16 +518,11 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
         border: const OutlineInputBorder(),
         isDense: true,
       ),
-      onChanged: (val) {
-        setState(() {
-          _previewNilaiAkhir = _hitungNilaiAkhir();
-        });
-      },
+      onChanged: (val) => _hitungNilaiAkhir(), // Auto Recalculate
       validator: (val) {
         if (val == null || val.isEmpty) return 'Wajib';
         final n = double.tryParse(val);
-        if (n == null) return 'Angka valid';
-        if (n < 0 || n > 100) return '0-100';
+        if (n == null || n < 0 || n > 100) return 'Valid 0-100';
         return null;
       },
     );

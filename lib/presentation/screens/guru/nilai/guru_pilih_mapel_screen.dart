@@ -130,6 +130,7 @@ class _GuruPilihMapelScreenState extends State<GuruPilihMapelScreen> {
                 mapelId: item['mapel_id'],
                 mapelNama: item['nama_mapel'],
                 tahunId: tahunAktif.id,
+                kategoriMapel: item['kategori'],
               ),
             ),
           );
