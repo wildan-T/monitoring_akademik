@@ -7,18 +7,22 @@ class SiswaModel {
   final String nama;
   final String? jenisKelamin;
   final String? kelasId;
-  final String? namaKelas; // Dari tabel kelas
-  final String? waliMuridId; // Ini adalah Profile ID
-  final String? namaWali; // Dari tabel wali_murid
-  final String? noHpWali; // Dari tabel profiles
-  final String? emailWali; // Dari tabel profiles
+
+  // Data Join (Read Only)
+  final String? namaKelas;
+  final String? waliMuridId;
+  final String? namaWali;
+  final String? noHpWali;
+  final String? emailWali;
+
+  // Data Detail Siswa
   final String? tempatLahir;
   final DateTime? tanggalLahir;
   final String? agama;
   final String? alamat;
   final String? namaAyah;
   final String? namaIbu;
-  final String status; // aktif, lulus, dll
+  final String status;
 
   SiswaModel({
     required this.id,
@@ -41,16 +45,33 @@ class SiswaModel {
     this.status = 'aktif',
   });
 
-  factory SiswaModel.fromJson(
-    Map<String, dynamic> json, {
-    Map<String, dynamic>? kelasData,
-    Map<String, dynamic>?
-    waliData, // Data wali dari tabel wali_murid & profiles
-  }) {
-    // 1. Handle Join Kelas (jika dari query langsung) atau Injection
-    final kelasObj = json['kelas'] is Map ? json['kelas'] : null;
-    final finalNamaKelas =
-        kelasData?['nama_kelas'] ?? kelasObj?['nama_kelas'] ?? '-';
+  factory SiswaModel.fromJson(Map<String, dynamic> json) {
+    // 1. Parsing Data Kelas (Nested Object)
+    String? _namaKelas;
+    if (json['kelas'] != null && json['kelas'] is Map) {
+      _namaKelas = json['kelas']['nama_kelas'];
+    }
+
+    // 2. Parsing Data Wali (Nested Object)
+    String? _namaWali;
+    String? _noHpWali;
+    String? _emailWali;
+
+    if (json['wali_murid'] != null && json['wali_murid'] is Map) {
+      final wali = json['wali_murid'];
+      _namaWali = wali['nama_lengkap'];
+
+      // Coba ambil kontak langsung dari tabel wali_murid (jika ada kolomnya)
+      _noHpWali = wali['no_telepon'];
+      _emailWali = wali['email'];
+
+      // OPSI: Jika kontak ada di tabel 'profiles' yang di-join via wali_murid
+      // Pastikan query Supabase: .select('..., wali_murid(*, profiles(email, no_telepon))')
+      if (wali['profiles'] != null && wali['profiles'] is Map) {
+        _noHpWali = wali['profiles']['no_telepon'] ?? _noHpWali;
+        _emailWali = wali['profiles']['email'] ?? _emailWali;
+      }
+    }
 
     return SiswaModel(
       id: json['id']?.toString() ?? '',
@@ -58,16 +79,14 @@ class SiswaModel {
       nis: json['nis']?.toString(),
       nama: json['nama_lengkap'] ?? 'Tanpa Nama',
       jenisKelamin: json['jenis_kelamin']?.toString(),
-
       kelasId: json['kelas_id']?.toString(),
-      namaKelas: finalNamaKelas,
 
+      // Assign data hasil parsing join
+      namaKelas: _namaKelas ?? '-',
       waliMuridId: json['wali_murid_id']?.toString(),
-
-      // Data Wali (Diambil dari Injection waliData)
-      namaWali: waliData?['nama_lengkap'] ?? '-',
-      noHpWali: waliData?['no_telepon'] ?? '-',
-      emailWali: waliData?['email'] ?? '-',
+      namaWali: _namaWali ?? '-',
+      noHpWali: _noHpWali ?? '-',
+      emailWali: _emailWali ?? '-',
 
       tempatLahir: json['tempat_lahir']?.toString(),
       tanggalLahir: json['tanggal_lahir'] != null
@@ -81,7 +100,6 @@ class SiswaModel {
     );
   }
 
-  // Untuk Update ke DB (Hanya field tabel siswa)
   Map<String, dynamic> toJson() {
     return {
       'nisn': nisn,

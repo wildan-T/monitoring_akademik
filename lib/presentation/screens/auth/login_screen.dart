@@ -188,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               controller: _emailController,
                               decoration: InputDecoration(
                                 labelText: 'Email',
-                                hintText: 'Contoh: admin@smpn20.sch.id',
+                                hintText: 'Contoh: walimurid@smpn20.sch.id',
                                 prefixIcon: const Icon(Icons.person),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),

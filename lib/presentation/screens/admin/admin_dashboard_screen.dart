@@ -151,7 +151,14 @@ class AdminDashboardScreen extends StatelessWidget {
                   title: 'Kelola Siswa',
                   icon: Icons.school,
                   color: AppColors.success,
-                  onTap: () => _showSiswaOptionsMenu(context),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SiswaListScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildMenuCard(
                   context,

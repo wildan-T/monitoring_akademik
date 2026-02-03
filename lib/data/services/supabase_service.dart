@@ -1060,7 +1060,9 @@ class SupabaseService {
           .from('siswa')
           .select('''
             *, 
-            wali_murid(*)
+            wali_murid(*,
+            profiles(no_telepon, email)),
+            kelas(nama_kelas)
           ''')
           .eq('kelas_id', kelasId)
           .order('nama_lengkap', ascending: true);

@@ -188,6 +188,28 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
                 ],
               ),
               const SizedBox(height: 16),
+              _field(_tempatLahirController, 'Tempat Lahir', true),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Agama',
+                  border: OutlineInputBorder(),
+                ),
+                items:
+                    const [
+                          'Islam',
+                          'Kristen',
+                          'Katolik',
+                          'Hindu',
+                          'Buddha',
+                          'Konghucu',
+                        ]
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                onChanged: (val) => _agamaController.text = val ?? '',
+                validator: (val) => val == null ? 'Agama wajib dipilih' : null,
+              ),
+              const SizedBox(height: 16),
+
               _field(_alamatController, 'Alamat', true, maxLines: 2),
               _field(_namaAyahController, 'Nama Ayah', false),
               _field(_namaIbuController, 'Nama Ibu', false),
