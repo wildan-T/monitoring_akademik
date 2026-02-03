@@ -239,17 +239,16 @@ class _FormNilaiWidgetState extends State<_FormNilaiWidget> {
       // return (tugas + uh + uts + uas) / 4;
 
       // --- OPSI 2: PEMBOBOTAN STANDAR (Contoh Umum) ---
-      // Nilai Harian (Rata2 Tugas & UH) = 40%
+      // Nilai Harian (Rata2 Tugas & UH) = 20%
+      // Nilai Praktik = 20%
       // Nilai UTS = 30%
       // Nilai UAS = 30%
 
       double nilaiHarian = (tugas + uh) / 2;
 
-      // Rumus: (Harian * 40%) + (UTS * 30%) + (UAS * 30%)
-      double nilaiAkhir = (nilaiHarian * 0.40) + (uts * 0.30) + (uas * 0.30);
-
-      // Jika Praktik ikut dihitung (Misal bobot 20% dari total, Akademik 80%)
-      // nilaiAkhir = (nilaiAkhir * 0.8) + (praktik * 0.2);
+      // Rumus: (Harian * 20%) + (Praktik * 20%) + (UTS * 30%) + (UAS * 30%)
+      nilaiAkhir =
+          (nilaiHarian * 0.20) + (praktik * 0.20) + (uts * 0.30) + (uas * 0.30);
     }
     setState(() => _previewNilai = nilaiAkhir); // Update UI Preview
     // Pembulatan 2 angka di belakang koma agar rapi
