@@ -4,33 +4,41 @@ import '../../../../core/constants/color_constants.dart';
 import '../../../../presentation/providers/sekolah_provider.dart';
 import 'sekolah_edit_screen.dart';
 
-class SekolahViewScreen extends StatelessWidget {
+class SekolahViewScreen extends StatefulWidget {
   const SekolahViewScreen({super.key});
+
+  @override
+  State<SekolahViewScreen> createState() => _SekolahViewScreenState();
+}
+
+class _SekolahViewScreenState extends State<SekolahViewScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      context.read<SekolahProvider>().fetchSekolahData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Data Sekolah'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SekolahEditScreen(),
-                ),
-              );
-            },
-            tooltip: 'Edit Data Sekolah',
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Data Sekolah')),
       body: Consumer<SekolahProvider>(
         builder: (context, provider, _) {
+          if (provider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (provider.errorMessage != null) {
+            return Center(child: Text(provider.errorMessage!));
+          }
+
           final sekolah = provider.sekolahData;
 
+          if (sekolah == null) {
+            return const Center(child: Text('Data sekolah belum tersedia'));
+          }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -44,15 +52,12 @@ class SekolahViewScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.primary,
-                        width: 3,
-                      ),
+                      border: Border.all(color: AppColors.primary, width: 3),
                     ),
-                    child: sekolah.logoPath != null
+                    child: sekolah?.logoPath != null
                         ? ClipOval(
                             child: Image.network(
-                              sekolah.logoPath!,
+                              sekolah?.logoPath ?? '',
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return _buildDefaultLogo();
@@ -68,7 +73,7 @@ class SekolahViewScreen extends StatelessWidget {
                 // Nama Sekolah (Center & Bold)
                 Center(
                   child: Text(
-                    sekolah.namaSekolah,
+                    sekolah?.namaSekolah ?? '',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -86,13 +91,13 @@ class SekolahViewScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _buildBadge(
-                        label: sekolah.akreditasi,
-                        color: _getAkreditasiColor(sekolah.akreditasi),
+                        label: sekolah?.akreditasi ?? '',
+                        color: _getAkreditasiColor(sekolah?.akreditasi ?? ''),
                       ),
                       const SizedBox(width: 8),
                       _buildBadge(
-                        label: sekolah.statusSekolah,
-                        color: sekolah.statusSekolah == 'Negeri'
+                        label: sekolah?.statusSekolah ?? '',
+                        color: sekolah?.statusSekolah == 'Negeri'
                             ? Colors.blue
                             : Colors.green,
                       ),
@@ -105,9 +110,9 @@ class SekolahViewScreen extends StatelessWidget {
                 // Informasi Umum
                 _buildSectionTitle('Informasi Umum'),
                 _buildInfoCard([
-                  _buildInfoRow('NPSN', sekolah.npsn),
-                  _buildInfoRow('Akreditasi', sekolah.infoAkreditasi),
-                  _buildInfoRow('Status', sekolah.statusSekolah),
+                  _buildInfoRow('NPSN', sekolah?.npsn ?? ''),
+                  _buildInfoRow('Akreditasi', sekolah?.infoAkreditasi ?? ''),
+                  _buildInfoRow('Status', sekolah?.statusSekolah ?? ''),
                 ]),
 
                 const SizedBox(height: 24),
@@ -115,10 +120,10 @@ class SekolahViewScreen extends StatelessWidget {
                 // Alamat
                 _buildSectionTitle('Alamat'),
                 _buildInfoCard([
-                  _buildInfoRow('Jalan', sekolah.alamat),
-                  _buildInfoRow('Kota/Kabupaten', sekolah.kota),
-                  _buildInfoRow('Provinsi', sekolah.provinsi),
-                  _buildInfoRow('Kode Pos', sekolah.kodePos),
+                  _buildInfoRow('Jalan', sekolah?.alamat ?? ''),
+                  _buildInfoRow('Kota/Kabupaten', sekolah?.kota ?? ''),
+                  _buildInfoRow('Provinsi', sekolah?.provinsi ?? ''),
+                  _buildInfoRow('Kode Pos', sekolah?.kodePos ?? ''),
                 ]),
 
                 const SizedBox(height: 24),
@@ -126,9 +131,9 @@ class SekolahViewScreen extends StatelessWidget {
                 // Kontak
                 _buildSectionTitle('Informasi Kontak'),
                 _buildInfoCard([
-                  _buildInfoRow('No. Telepon', sekolah.noTelp),
-                  _buildInfoRow('Email', sekolah.email),
-                  _buildInfoRow('Website', sekolah.website),
+                  _buildInfoRow('No. Telepon', sekolah?.noTelp ?? ''),
+                  _buildInfoRow('Email', sekolah?.email ?? ''),
+                  _buildInfoRow('Website', sekolah?.website ?? ''),
                 ]),
 
                 const SizedBox(height: 24),
@@ -136,8 +141,8 @@ class SekolahViewScreen extends StatelessWidget {
                 // Kepala Sekolah
                 _buildSectionTitle('Kepala Sekolah'),
                 _buildInfoCard([
-                  _buildInfoRow('Nama', sekolah.namaKepalaSekolah),
-                  _buildInfoRow('NIP', sekolah.nipKepalaSekolah),
+                  _buildInfoRow('Nama', sekolah?.namaKepalaSekolah ?? ''),
+                  _buildInfoRow('NIP', sekolah?.nipKepalaSekolah ?? ''),
                 ]),
 
                 const SizedBox(height: 32),
@@ -183,11 +188,7 @@ class SekolahViewScreen extends StatelessWidget {
   }
 
   Widget _buildDefaultLogo() {
-    return const Icon(
-      Icons.school,
-      size: 60,
-      color: AppColors.primary,
-    );
+    return const Icon(Icons.school, size: 60, color: AppColors.primary);
   }
 
   Widget _buildBadge({required String label, required Color color}) {
@@ -239,9 +240,7 @@ class SekolahViewScreen extends StatelessWidget {
   Widget _buildInfoCard(List<Widget> children) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -269,17 +268,11 @@ class SekolahViewScreen extends StatelessWidget {
               ),
             ),
           ),
-          const Text(
-            ': ',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
+          const Text(': ', style: TextStyle(fontWeight: FontWeight.w600)),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
           ),
         ],

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
@@ -13,9 +14,20 @@ class RaporPdfService {
     required String semester,
     required String namaWaliKelas,
     required String nipWaliKelas,
+    required String alamatSekolah,
     required List<Map<String, dynamic>> listNilaiRaw,
   }) async {
     final pdf = pw.Document();
+
+    // 1. LOAD LOGO (Pastikan ada file assets/images/logo.png)
+    // Jika tidak ada, gunakan placeholder atau handle error
+    pw.MemoryImage? logoSekolah;
+    try {
+      final logoBytes = await rootBundle.load('assets/images/logo.png');
+      logoSekolah = pw.MemoryImage(logoBytes.buffer.asUint8List());
+    } catch (e) {
+      print("Logo not found: $e");
+    }
 
     // 1. FILTER DATA BERDASARKAN KATEGORI
     // Pastikan database tabel mata_pelajaran kolom 'kategori' isinya:
@@ -46,7 +58,7 @@ class RaporPdfService {
         build: (pw.Context context) {
           return [
             // HEADER & INFO SISWA
-            _buildHeader(tahunAjaran, semester),
+            _buildHeader(tahunAjaran, semester, alamatSekolah, logoSekolah),
             pw.SizedBox(height: 20),
             _buildStudentInfo(siswa, namaKelas),
             pw.SizedBox(height: 20),
@@ -118,21 +130,67 @@ class RaporPdfService {
   // ==========================================
 
   // 1. Header Sekolah
-  pw.Widget _buildHeader(String tahun, String semester) {
+  pw.Widget _buildHeader(
+    String tahun,
+    String semester,
+    String alamat,
+    pw.MemoryImage? logo,
+  ) {
     return pw.Column(
       children: [
-        pw.Text(
-          'LAPORAN HASIL BELAJAR SISWA',
-          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            // Logo Kiri
+            if (logo != null)
+              pw.Container(width: 60, height: 60, child: pw.Image(logo))
+            else
+              pw.SizedBox(
+                width: 60,
+                height: 60,
+              ), // Space kosong jika logo gagal
+
+            pw.SizedBox(width: 15),
+
+            // Teks Tengah
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center, // Center text
+                children: [
+                  pw.Text(
+                    'LAPORAN HASIL BELAJAR SISWA',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'SMP NEGERI 20 TANGERANG',
+                    style: pw.TextStyle(
+                      fontSize: 18,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    alamat,
+                    style: const pw.TextStyle(fontSize: 10),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Tahun Pelajaran $tahun - Semester $semester',
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            // Spacer kanan agar logo seimbang (opsional)
+            pw.SizedBox(width: 75),
+          ],
         ),
-        pw.Text(
-          'SMP NEGERI 20 TANGERANG',
-          style: const pw.TextStyle(fontSize: 14),
-        ),
-        pw.Text(
-          'Tahun Pelajaran $tahun - Semester $semester',
-          style: const pw.TextStyle(fontSize: 12),
-        ),
+        pw.SizedBox(height: 8),
         pw.Divider(thickness: 2),
       ],
     );
@@ -259,14 +317,17 @@ class RaporPdfService {
             pw.Text('Wali Kelas'),
             pw.SizedBox(height: 60),
             pw.Text(
-              waliKelas,
-              style: pw.TextStyle(
-                fontWeight: pw.FontWeight.bold,
-                decoration: pw.TextDecoration.underline,
-              ),
+              waliKelas.isNotEmpty ? waliKelas : '( ...................... )',
+              style: waliKelas.isNotEmpty
+                  ? pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      decoration: pw.TextDecoration.underline,
+                    )
+                  : null,
             ),
-            // ✅ TAMPILKAN NIP DI SINI
-            pw.Text('NIP. ${nipGuru.isNotEmpty ? nipGuru : "-"}'),
+            pw.Text(
+              'NIP. ${nipGuru.isNotEmpty ? nipGuru : "                       "}',
+            ),
           ],
         ),
       ],

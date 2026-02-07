@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/providers/sekolah_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:printing/printing.dart'; // Wajib untuk fitur print
 
@@ -48,6 +49,7 @@ class _GuruKelaskuScreenState extends State<GuruKelaskuScreen>
     final kelasProv = context.read<KelasProvider>();
     final siswaProv = context.read<SiswaProvider>();
     final tahunProv = context.read<TahunPelajaranProvider>();
+    final sekolahProv = context.read<SekolahProvider>();
 
     try {
       if (authProv.currentUser != null) {
@@ -64,6 +66,7 @@ class _GuruKelaskuScreenState extends State<GuruKelaskuScreen>
           // Load Mapel untuk Tab Rekap
           _loadMapelKelas(kelasProv.myKelas!.id);
         }
+        await sekolahProv.fetchSekolahData();
       }
     } catch (e) {
       debugPrint("Error loading data kelasku: $e");
@@ -106,6 +109,8 @@ class _GuruKelaskuScreenState extends State<GuruKelaskuScreen>
       final tahunProv = context.read<TahunPelajaranProvider>();
       final kelasProv = context.read<KelasProvider>();
       final guruProv = context.read<GuruProvider>();
+      final sekolahProv = context.read<SekolahProvider>();
+      final alamat = sekolahProv.sekolahData?.alamat ?? "";
 
       final tahunAktif = tahunProv.tahunList.firstWhere(
         (t) => t.isActive,
@@ -126,6 +131,7 @@ class _GuruKelaskuScreenState extends State<GuruKelaskuScreen>
         semester: tahunAktif.semester.toString(),
         namaWaliKelas: guruProv.currentGuru?.nama ?? 'Wali Kelas',
         nipWaliKelas: guruProv.currentGuru?.nip ?? '...............',
+        alamatSekolah: alamat,
         listNilaiRaw: dataNilai,
       );
 

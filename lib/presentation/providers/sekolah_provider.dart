@@ -1,113 +1,65 @@
-//C:\Users\MSITHIN\monitoring_akademik\lib\presentation\providers\sekolah_provider.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:monitoring_akademik/core/utils/error_handler.dart';
 import '../../data/models/sekolah_model.dart';
+import '../../data/services/supabase_service.dart';
 
 class SekolahProvider with ChangeNotifier {
-  // Data sekolah (hanya 1 record)
-  SekolahModel _sekolahData = SekolahModel(
-    id: '1',
-    namaSekolah: 'SMPN 20 KOTA TANGERANG',
-    npsn: '20606758',
-    alamat: 'Jl. Nuri Raya Perumnas I RT.001 RW.003',
-    kota: 'Kota Tangerang',
-    provinsi: 'Banten',
-    kodePos: '15138',
-    noTelp: '021-5522727',
-    email: 'smpn20tangerang@gmail.com',
-    website: 'www.smpn20tangerang.sch.id',
-    namaKepalaSekolah: 'Dr. H. Budi Santoso, M.Pd',
-    nipKepalaSekolah: '196505151990031005',
-    akreditasi: 'A',
-    statusSekolah: 'Negeri',
-    logoPath: null, // Belum ada logo
-    createdAt: DateTime.now(),
-  );
+  final SupabaseService _service = SupabaseService();
 
+  SekolahModel? _sekolahData;
   bool _isLoading = false;
   String? _errorMessage;
 
   // Getters
-  SekolahModel get sekolahData => _sekolahData;
+  SekolahModel? get sekolahData => _sekolahData;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Update data sekolah
+  /// FETCH DATA SEKOLAH DARI SUPABASE
+  Future<void> fetchSekolahData() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Ambil data dari Service
+      final data = await _service.getSekolah();
+
+      if (data != null) {
+        _sekolahData = SekolahModel.fromJson(data);
+      } else {
+        _errorMessage = "Data sekolah belum diatur.";
+      }
+    } catch (e) {
+      _errorMessage = ErrorHandler.interpret(e);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// UPDATE DATA SEKOLAH
   Future<bool> updateSekolah(SekolahModel updatedData) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Simulasi delay network
-      await Future.delayed(const Duration(seconds: 1));
+      // Panggil Service untuk update ke DB
+      // Kita kirim toJson() tapi hapus field yang tidak perlu diupdate manual (seperti created_at)
+      await _service.updateSekolah(updatedData.toJson());
 
-      _sekolahData = updatedData.copyWith(
-        id: _sekolahData.id, // ID tetap sama
-        updatedAt: DateTime.now(),
-      );
+      // Update state lokal jika sukses
+      _sekolahData = updatedData.copyWith(updatedAt: DateTime.now());
 
-      _isLoading = false;
-      notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage =
-          'Gagal mengupdate data sekolah: ${ErrorHandler.interpret(e)}';
-      _isLoading = false;
-      notifyListeners();
+      _errorMessage = ErrorHandler.interpret(e);
       return false;
-    }
-  }
-
-  // Update logo sekolah
-  Future<bool> updateLogo(String logoPath) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      // Simulasi delay upload
-      await Future.delayed(const Duration(seconds: 2));
-
-      _sekolahData = _sekolahData.copyWith(
-        logoPath: logoPath,
-        updatedAt: DateTime.now(),
-      );
-
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = 'Gagal mengupload logo: ${ErrorHandler.interpret(e)}';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // Remove logo sekolah
-  Future<bool> removeLogo() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      // Simulasi delay
-      await Future.delayed(const Duration(seconds: 1));
-
-      _sekolahData = _sekolahData.copyWith(
-        logoPath: null,
-        updatedAt: DateTime.now(),
-      );
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = 'Gagal menghapus logo: ${ErrorHandler.interpret(e)}';
-      _isLoading = false;
-      notifyListeners();
-      return false;
     }
   }
 }

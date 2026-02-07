@@ -25,8 +25,8 @@ class _SekolahEditScreenState extends State<SekolahEditScreen> {
   late TextEditingController _namaKepsekController;
   late TextEditingController _nipKepsekController;
 
-  late String _akreditasi;
-  late String _statusSekolah;
+  String? _akreditasi;
+  String? _statusSekolah;
   bool _isLoading = false;
 
   final List<String> _daftarAkreditasi = ['A', 'B', 'C', 'Belum Terakreditasi'];
@@ -39,20 +39,24 @@ class _SekolahEditScreenState extends State<SekolahEditScreen> {
     final sekolah = context.read<SekolahProvider>().sekolahData;
 
     // Initialize controllers dengan data existing
-    _namaSekolahController = TextEditingController(text: sekolah.namaSekolah);
-    _npsnController = TextEditingController(text: sekolah.npsn);
-    _alamatController = TextEditingController(text: sekolah.alamat);
-    _kotaController = TextEditingController(text: sekolah.kota);
-    _provinsiController = TextEditingController(text: sekolah.provinsi);
-    _kodePosController = TextEditingController(text: sekolah.kodePos);
-    _noTelpController = TextEditingController(text: sekolah.noTelp);
-    _emailController = TextEditingController(text: sekolah.email);
-    _websiteController = TextEditingController(text: sekolah.website);
-    _namaKepsekController = TextEditingController(text: sekolah.namaKepalaSekolah);
-    _nipKepsekController = TextEditingController(text: sekolah.nipKepalaSekolah);
+    _namaSekolahController = TextEditingController(text: sekolah?.namaSekolah);
+    _npsnController = TextEditingController(text: sekolah?.npsn);
+    _alamatController = TextEditingController(text: sekolah?.alamat);
+    _kotaController = TextEditingController(text: sekolah?.kota);
+    _provinsiController = TextEditingController(text: sekolah?.provinsi);
+    _kodePosController = TextEditingController(text: sekolah?.kodePos);
+    _noTelpController = TextEditingController(text: sekolah?.noTelp);
+    _emailController = TextEditingController(text: sekolah?.email);
+    _websiteController = TextEditingController(text: sekolah?.website);
+    _namaKepsekController = TextEditingController(
+      text: sekolah?.namaKepalaSekolah,
+    );
+    _nipKepsekController = TextEditingController(
+      text: sekolah?.nipKepalaSekolah,
+    );
 
-    _akreditasi = sekolah.akreditasi;
-    _statusSekolah = sekolah.statusSekolah;
+    _akreditasi = sekolah?.akreditasi;
+    _statusSekolah = sekolah?.statusSekolah;
   }
 
   @override
@@ -74,9 +78,7 @@ class _SekolahEditScreenState extends State<SekolahEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Data Sekolah'),
-      ),
+      appBar: AppBar(title: const Text('Edit Data Sekolah')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -369,9 +371,7 @@ class _SekolahEditScreenState extends State<SekolahEditScreen> {
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         validator: validator,
         keyboardType: keyboardType,
@@ -382,7 +382,7 @@ class _SekolahEditScreenState extends State<SekolahEditScreen> {
 
   Widget _buildDropdown({
     required String label,
-    required String value,
+    required String? value,
     required List<String> items,
     required void Function(String?) onChanged,
   }) {
@@ -392,15 +392,10 @@ class _SekolahEditScreenState extends State<SekolahEditScreen> {
         value: value,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         items: items.map((item) {
-          return DropdownMenuItem(
-            value: item,
-            child: Text(item),
-          );
+          return DropdownMenuItem(value: item, child: Text(item));
         }).toList(),
         onChanged: onChanged,
       ),
@@ -419,7 +414,7 @@ class _SekolahEditScreenState extends State<SekolahEditScreen> {
     final currentSekolah = context.read<SekolahProvider>().sekolahData;
 
     final updatedSekolah = SekolahModel(
-      id: currentSekolah.id,
+      id: currentSekolah?.id ?? '',
       namaSekolah: _namaSekolahController.text,
       npsn: _npsnController.text,
       alamat: _alamatController.text,
@@ -431,13 +426,15 @@ class _SekolahEditScreenState extends State<SekolahEditScreen> {
       website: _websiteController.text,
       namaKepalaSekolah: _namaKepsekController.text,
       nipKepalaSekolah: _nipKepsekController.text,
-      akreditasi: _akreditasi,
-      statusSekolah: _statusSekolah,
-      logoPath: currentSekolah.logoPath,
-      createdAt: currentSekolah.createdAt,
+      akreditasi: _akreditasi ?? '',
+      statusSekolah: _statusSekolah ?? '',
+      // logoPath: currentSekolah?.logoPath,
+      createdAt: currentSekolah?.createdAt,
     );
 
-    final success = await context.read<SekolahProvider>().updateSekolah(updatedSekolah);
+    final success = await context.read<SekolahProvider>().updateSekolah(
+      updatedSekolah,
+    );
 
     setState(() {
       _isLoading = false;

@@ -1915,18 +1915,74 @@ class SupabaseService {
   /// Ambil Data Wali Kelas berdasarkan Kelas ID
   Future<Map<String, dynamic>?> getWaliKelasByKelasId(String kelasId) async {
     try {
-      // Asumsi: Tabel 'kelas' punya kolom 'wali_kelas_id' yang foreign key ke 'guru'
       final response = await _supabase
           .from('kelas')
-          .select('guru(*)') // Join ke tabel guru
+          .select('''
+          wali_kelas:profiles (
+            guru (
+              nama_lengkap,
+              nip
+            )
+          )
+        ''')
           .eq('id', kelasId)
           .maybeSingle();
 
-      // Response akan berbentuk: { "guru": { "nama_lengkap": "...", "nip": "..." } }
-      return response?['guru'];
+      return response?['wali_kelas']?['guru'];
     } catch (e) {
       print('❌ Error getWaliKelasByKelasId: $e');
       return null;
     }
   }
+
+  /// Ambil Data Sekolah (Single Row - Asumsi hanya ada 1 sekolah di DB)
+  Future<Map<String, dynamic>?> getSekolah() async {
+    try {
+      final response = await _supabase
+          .from('sekolah')
+          .select()
+          .limit(1)
+          .maybeSingle();
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Update Data Sekolah
+  // Menggunakan update tanpa where ID jika hanya ada 1 baris,
+  // atau spesifikan ID jika tabel sekolah menampung banyak sekolah.
+  Future<void> updateSekolah(Map<String, dynamic> data) async {
+    try {
+      final id = data['id'];
+
+      if (id == null) {
+        throw Exception('ID sekolah tidak ditemukan');
+      }
+      await _supabase.from('sekolah').update(data).eq('id', id);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Upload File ke Storage
+  // Future<String?> uploadFile({
+  //   required String bucketName,
+  //   required String filePath,
+  //   required File file,
+  // }) async {
+  //   try {
+  //     await _supabase.storage.from(bucketName).upload(
+  //           filePath,
+  //           file,
+  //           fileOptions: const FileOptions(upsert: true), // Timpa jika ada
+  //         );
+
+  //     final publicUrl = _supabase.storage.from(bucketName).getPublicUrl(filePath);
+  //     return publicUrl;
+  //   } catch (e) {
+  //     print("Upload Error: $e");
+  //     rethrow;
+  //   }
+  // }
 }

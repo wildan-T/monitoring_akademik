@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monitoring_akademik/presentation/providers/sekolah_provider.dart';
 import 'package:printing/printing.dart'; // Wajib install package printing
 import 'package:provider/provider.dart';
 import '../../../../core/constants/color_constants.dart';
@@ -26,7 +27,9 @@ class _WaliNilaiScreenState extends State<WaliNilaiScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
@@ -39,6 +42,8 @@ class _WaliNilaiScreenState extends State<WaliNilaiScreen> {
         (t) => t.isActive,
         orElse: () => tahunProv.tahunList.first, // Fallback
       );
+      final sekolahProv = context.read<SekolahProvider>();
+      await sekolahProv.fetchSekolahData();
 
       // 1. Ambil Nilai Siswa
       final dataNilai = await SupabaseService().getNilaiRaporSiswa(
@@ -84,6 +89,8 @@ class _WaliNilaiScreenState extends State<WaliNilaiScreen> {
     try {
       final tahunProv = context.read<TahunPelajaranProvider>();
       final tahunAktif = tahunProv.tahunList.firstWhere((t) => t.isActive);
+      final sekolahProv = context.read<SekolahProvider>();
+      final alamat = sekolahProv.sekolahData?.alamat ?? "";
 
       final siswaModel = SiswaModel(
         id: widget.siswaData['id'],
@@ -104,6 +111,7 @@ class _WaliNilaiScreenState extends State<WaliNilaiScreen> {
         semester: tahunAktif.semester.toString(),
         namaWaliKelas: _namaWaliKelas,
         nipWaliKelas: _nipWaliKelas,
+        alamatSekolah: alamat,
         listNilaiRaw: _nilaiList,
       );
 
