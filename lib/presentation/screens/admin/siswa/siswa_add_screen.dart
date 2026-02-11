@@ -38,6 +38,7 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
   String? _selectedGenderWali;
   String? _selectedHubungan; // ayah/ibu/wali
   DateTime? _tanggalLahir;
+  String? _tanggalLahirError;
 
   @override
   void initState() {
@@ -46,13 +47,28 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
   }
 
   void _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Reset error manual sebelum validasi ulang
+    setState(() => _tanggalLahirError = null);
+
+    // Jalankan validasi Form standar
+    bool formValid = _formKey.currentState!.validate();
+
+    // Validasi Manual: Tanggal Lahir
+    if (_tanggalLahir == null) {
+      setState(() => _tanggalLahirError = 'Tanggal lahir wajib diisi');
+      formValid = false;
+    }
+
+    // Validasi Manual: Kelas
     if (_selectedKelasId == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Pilih Kelas!')));
       return;
     }
+
+    // Cek Keseluruhan
+    if (!formValid) return;
 
     // Persiapan Payload ke Edge Function
     final payload = {
@@ -75,9 +91,7 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
       'pekerjaan_wali': _pekerjaanWaliController.text.trim(),
       'alamat_wali': _alamatController.text.trim(), // Asumsi sama dgn siswa
       'hubungan_wali': _selectedHubungan,
-      'email': _emailWaliController.text.trim().isNotEmpty
-          ? _emailWaliController.text.trim()
-          : '${_nisnController.text.trim()}@wali.sekolah.id', // Generate Default
+      'email': _emailWaliController.text.trim(),
       'no_telepon': _noHpWaliController.text.trim(),
     };
 
@@ -119,11 +133,25 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _field(_nisnController, 'NISN', true, number: true),
+                    child: _field(
+                      _nisnController,
+                      'NISN',
+                      true,
+                      number: true,
+                      minLength: 10,
+                      maxLength: 10,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _field(_nisController, 'NIS', false, number: true),
+                    child: _field(
+                      _nisController,
+                      'NIS',
+                      true,
+                      number: true,
+                      minLength: 10,
+                      maxLength: 18,
+                    ),
                   ),
                 ],
               ),
@@ -155,9 +183,10 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
                 children: [
                   Expanded(
                     child: _dropdown(
-                      ['L', 'P'],
-                      'Jenis Kelamin',
-                      (v) => _selectedGender = v,
+                      items: ['L', 'P'],
+                      label: 'Jenis Kelamin',
+                      onChange: (v) => _selectedGender = v,
+                      requiredField: true,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -170,17 +199,34 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
                           firstDate: DateTime(2000),
                           lastDate: DateTime.now(),
                         );
-                        if (d != null) setState(() => _tanggalLahir = d);
+                        if (d != null) {
+                          setState(() {
+                            _tanggalLahir = d;
+                            _tanggalLahirError = null;
+                          });
+                        }
                       },
                       child: InputDecorator(
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Tgl Lahir',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: const Icon(
+                            Icons.calendar_today,
+                            size: 18,
+                          ),
+                          errorText: _tanggalLahirError,
+                          errorStyle: const TextStyle(color: Colors.red),
                         ),
                         child: Text(
                           _tanggalLahir == null
                               ? '-'
                               : DateFormat('dd/MM/yyyy').format(_tanggalLahir!),
+                          style: TextStyle(
+                            // Jika belum diisi, warnanya abu-abu biar seperti hint text
+                            color: _tanggalLahir == null
+                                ? Colors.black54
+                                : Colors.black,
+                          ),
                         ),
                       ),
                     ),
@@ -211,27 +257,29 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
               const SizedBox(height: 16),
 
               _field(_alamatController, 'Alamat', true, maxLines: 2),
-              _field(_namaAyahController, 'Nama Ayah', false),
-              _field(_namaIbuController, 'Nama Ibu', false),
+              _field(_namaAyahController, 'Nama Ayah', true),
+              _field(_namaIbuController, 'Nama Ibu', true),
 
               const SizedBox(height: 24),
-              _header('Data Wali Murid (Otomatis Buat Akun)'),
-              _field(_namaWaliController, 'Nama Wali', true),
+              _header('Registrasi Akun Wali'),
+              _field(_namaWaliController, 'Nama Ayah/Ibu/Wali', true),
               Row(
                 children: [
                   Expanded(
                     child: _dropdown(
-                      ['L', 'P'],
-                      'Jenis Kelamin',
-                      (v) => _selectedGenderWali = v,
+                      items: ['L', 'P'],
+                      label: 'Jenis Kelamin',
+                      onChange: (v) => _selectedGender = v,
+                      requiredField: true,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _dropdown(
-                      ['ayah', 'ibu', 'wali'],
-                      'Hubungan',
-                      (v) => _selectedHubungan = v,
+                      items: ['ayah', 'ibu', 'wali'],
+                      label: 'Hubungan',
+                      onChange: (v) => _selectedHubungan = v,
+                      requiredField: true,
                     ),
                   ),
                 ],
@@ -239,11 +287,7 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
               const SizedBox(height: 16),
               _field(_pekerjaanWaliController, 'Pekerjaan', false),
               _field(_noHpWaliController, 'No HP / WA', true, number: true),
-              _field(
-                _emailWaliController,
-                'Email Wali (Opsional - Default NISN)',
-                false,
-              ),
+              _field(_emailWaliController, 'Email Wali', true),
 
               const SizedBox(height: 24),
               SizedBox(
@@ -292,6 +336,8 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
     bool req, {
     bool number = false,
     int maxLines = 1,
+    int? minLength,
+    int? maxLength,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -300,21 +346,35 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
+          counterText: "",
         ),
         keyboardType: number ? TextInputType.number : TextInputType.text,
         maxLines: maxLines,
-        validator: req
-            ? (v) => v == null || v.isEmpty ? '$label wajib' : null
-            : null,
+        maxLength: maxLength,
+        validator: (v) {
+          if (req && (v == null || v.isEmpty)) return '$label wajib';
+
+          if (v != null && v.isNotEmpty) {
+            if (minLength != null && v.length < minLength) {
+              return 'Min $minLength karakter';
+            }
+            if (maxLength != null && v.length > maxLength) {
+              // Biasanya maxLength di TextFormField sudah mencegah ini, tapi untuk safety
+              return 'Max $maxLength karakter';
+            }
+          }
+          return null;
+        },
       ),
     );
   }
 
-  Widget _dropdown(
-    List<String> items,
-    String label,
-    Function(String?) onChange,
-  ) {
+  Widget _dropdown({
+    required List<String> items,
+    required String label,
+    required Function(String?) onChange,
+    bool requiredField = false,
+  }) {
     return DropdownButtonFormField<String>(
       decoration: InputDecoration(
         labelText: label,
@@ -324,6 +384,9 @@ class _SiswaAddScreenState extends State<SiswaAddScreen> {
           .map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase())))
           .toList(),
       onChanged: onChange,
+      validator: requiredField
+          ? (val) => val == null ? '$label wajib dipilih' : null
+          : null,
     );
   }
 }

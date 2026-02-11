@@ -144,8 +144,22 @@ class _SiswaEditScreenState extends State<SiswaEditScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSectionTitle('Data Akademik'),
-              _buildTextField(_nisnController, 'NISN', true, isNumber: true),
-              _buildTextField(_nisController, 'NIS', false, isNumber: true),
+              _buildTextField(
+                _nisnController,
+                'NISN',
+                true,
+                isNumber: true,
+                minLength: 10,
+                maxLength: 10,
+              ),
+              _buildTextField(
+                _nisController,
+                'NIS',
+                true,
+                isNumber: true,
+                minLength: 10,
+                maxLength: 18,
+              ),
 
               // Dropdown Kelas
               Consumer<KelasProvider>(
@@ -263,7 +277,7 @@ class _SiswaEditScreenState extends State<SiswaEditScreen> {
                 ],
               ),
 
-              _buildTextField(_tempatLahirController, 'Tempat Lahir', false),
+              _buildTextField(_tempatLahirController, 'Tempat Lahir', true),
 
               // Dropdown Agama
               Padding(
@@ -309,8 +323,8 @@ class _SiswaEditScreenState extends State<SiswaEditScreen> {
 
               const SizedBox(height: 16),
               _buildSectionTitle('Data Orang Tua (Arsip)'),
-              _buildTextField(_namaAyahController, 'Nama Ayah Kandung', false),
-              _buildTextField(_namaIbuController, 'Nama Ibu Kandung', false),
+              _buildTextField(_namaAyahController, 'Nama Ayah Kandung', true),
+              _buildTextField(_namaIbuController, 'Nama Ibu Kandung', true),
 
               const SizedBox(height: 16),
               Container(
@@ -388,6 +402,8 @@ class _SiswaEditScreenState extends State<SiswaEditScreen> {
     bool required, {
     bool isNumber = false,
     int maxLines = 1,
+    int? minLength,
+    int? maxLength,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -396,12 +412,22 @@ class _SiswaEditScreenState extends State<SiswaEditScreen> {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
+          counterText: "",
         ),
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         maxLines: maxLines,
-        validator: required
-            ? (val) => val == null || val.isEmpty ? '$label wajib diisi' : null
-            : null,
+        maxLength: maxLength,
+        validator: (val) {
+          if (required && (val == null || val.isEmpty)) {
+            return '$label wajib diisi';
+          }
+          if (val != null && val.isNotEmpty) {
+            if (minLength != null && val.length < minLength) {
+              return '$label minimal $minLength karakter';
+            }
+          }
+          return null;
+        },
       ),
     );
   }
