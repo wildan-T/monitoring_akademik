@@ -166,7 +166,7 @@ class RaporPdfService {
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
-                    'SMP NEGERI 20 TANGERANG',
+                    'SMP NEGERI 20 KOTA TANGERANG',
                     style: pw.TextStyle(
                       fontSize: 18,
                       fontWeight: pw.FontWeight.bold,
